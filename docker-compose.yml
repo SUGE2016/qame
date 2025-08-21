@@ -9,11 +9,17 @@ services:
       - ./nginx/ssl.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
-      - lobby
-      - api-server
-      - game-server
+      lobby:
+        condition: service_healthy
+      api-server:
+        condition: service_healthy
+      game-server:
+        condition: service_healthy
+      admin-console:
+        condition: service_healthy
     networks:
       - qame-network
+    restart: unless-stopped
 
   # 游戏大厅应用
   lobby:
@@ -34,6 +40,18 @@ services:
       - REACT_APP_GAME_SERVER=https://192.168.1.156/games
     networks:
       - qame-network
+    depends_on:
+      api-server:
+        condition: service_healthy
+      game-server:
+        condition: service_healthy
+      ai-manager:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
 
   # 管理控制台应用
   admin-console:
@@ -50,17 +68,20 @@ services:
     environment:
       - REACT_APP_API_SERVER=https://192.168.1.156
       - REACT_APP_GAME_SERVER=/games
-      - DB_HOST=postgres
-      - DB_NAME=boardgame_db
-      - DB_USER=boardgame_user
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_PORT=5432
       - JWT_SECRET=${JWT_SECRET}
       - GAME_SERVER_URL=http://game-server:8000
     depends_on:
-      - postgres
+      api-server:
+        condition: service_healthy
+      game-server:
+        condition: service_healthy
     networks:
       - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3001 || exit 1"]
+      interval: 10s
+      timeout: 5s
 
   # boardgame.io游戏服务器 - 专门处理游戏逻辑
   game-server:
@@ -79,11 +100,16 @@ services:
       - DB_PORT=5432
       - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
       - AI_SERVICE_TIMEOUT=${AI_SERVICE_TIMEOUT:-30000}
-
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8000/games || exit 1"]
+      interval: 10s
+      timeout: 5s
 
   # API服务器 - 专门处理业务逻辑（认证、AI等）
   api-server:
@@ -110,10 +136,17 @@ services:
       - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
       - PASSWORD_SALT=${PASSWORD_SALT}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
 
   # AI管理服务 - AI客户端管理和监控
   ai-manager:
@@ -133,12 +166,19 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
     depends_on:
-      - game-server
-      - api-server
-      - postgres
+      game-server:
+        condition: service_healthy
+      api-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - qame-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3002/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
 
   # LLM AI服务 - 基于LLM的AI游戏客户端示例
   llm-ai-service:
@@ -182,6 +222,12 @@ services:
       - "5432:5432"
     networks:
       - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boardgame_user -d boardgame_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis缓存 - 会话和房间状态
   redis:
@@ -192,6 +238,12 @@ services:
       - "6379:6379"
     networks:
       - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

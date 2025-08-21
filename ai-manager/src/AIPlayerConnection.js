@@ -11,7 +11,7 @@ class AIPlayerConnection {
     // 基本配置
     this.id = config.id;
     this.seatIndex = config.seatIndex;
-    this.playerName = config.playerName || `AI-${String(this.id).slice(0, 8)}`;
+    this.playerName = config.playerName;
     this.gameId = config.gameType;
     this.matchId = config.matchId;
     
@@ -28,6 +28,12 @@ class AIPlayerConnection {
     this.status = 'created';
     this.gameState = null;
     this.createdAt = new Date();
+    
+    // 防重复处理机制
+    this.lastProcessedTurn = -1;
+    this.isProcessingMove = false;
+    
+
 
     console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI玩家连接已创建: ${this.playerName}, seatIndex: ${this.seatIndex}`);
   }
@@ -40,11 +46,17 @@ class AIPlayerConnection {
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 连接到游戏服务器: ${this.gameServerUrl}`);
       this.status = 'connecting';
       
+      // 如果已有连接，先断开旧连接
+      if (this.client || this.unsubscribe) {
+        console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] DEBUG: 检测到旧连接，先断开`);
+        this.disconnect();
+      }
+      
       // 创建 boardgame.io Client 实例
       this.client = Client({
         game: this._getGameConfig(),
         multiplayer: SocketIO({ server: this.gameServerUrl }),
-        playerID: this.seatIndex.toString(),
+        playerID: this.seatIndex.toString(), // boardgame.io的playerID
         matchID: this.matchId,
         debug: false
       });
@@ -81,6 +93,9 @@ class AIPlayerConnection {
     this.unsubscribe = this.client.subscribe((state) => {
       if (state) {
         this.gameState = state;
+        
+
+        
         console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] DEBUG: 游戏状态更新: turn ${state.ctx?.turn || 0}`);
         
         // 检查游戏是否结束
@@ -104,6 +119,10 @@ class AIPlayerConnection {
     try {
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 游戏已结束`);
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 游戏结果: ${JSON.stringify(state.ctx?.gameover)}`);
+      
+      // 游戏结束时主动断开连接，避免状态残留
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 游戏结束，断开连接`);
+      this.disconnect();
     } catch (error) {
       console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 处理游戏结束失败: ${error.message}`);
     }
@@ -114,24 +133,41 @@ class AIPlayerConnection {
    */
   async _checkAndMakeMove(state) {
     try {
-      // 检查是否轮到当前AI玩家
-      if (state.ctx?.currentPlayer !== this.seatIndex.toString()) {
+      const playerID = this.seatIndex.toString();
+    
+      console.log(`[ai-player:${this.playerName}] DEBUG: 检查轮次 - currentPlayer: ${state.ctx?.currentPlayer}, AI seatIndex: ${this.seatIndex}, 匹配: ${state.ctx?.currentPlayer === playerID}`);
+      if (state.ctx?.currentPlayer !== playerID) {
         return;
       }
       
+      // 防重复处理机制
+      const currentTurn = state.ctx?.turn || 0;
+      if (this.isProcessingMove || currentTurn <= this.lastProcessedTurn) {
+        console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] DEBUG: 跳过重复处理 - isProcessing: ${this.isProcessingMove}, currentTurn: ${currentTurn}, lastProcessed: ${this.lastProcessedTurn}`);
+        return;
+      }
+      
+      this.isProcessingMove = true;
+      this.lastProcessedTurn = currentTurn;
+      
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 轮到AI玩家行动`);
       
-      // 调用LLM AI服务获取移动决策
-      const move = await this._getAIMove(state);
-      
-      if (move !== null && move !== undefined && move !== -1) {
-        // 执行移动
-        await this.executeMove(move);
-      } else {
-        console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 无法获取有效的AI移动`);
+      try {
+        // 调用LLM AI服务获取移动决策
+        const move = await this._getAIMove(state);
+        
+        if (move !== null && move !== undefined && move !== -1) {
+          // 执行移动
+          await this.executeMove(move);
+        } else {
+          console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 无法获取有效的AI移动`);
+        }
+      } finally {
+        this.isProcessingMove = false;
       }
       
     } catch (error) {
+      this.isProcessingMove = false;
       console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 检查并执行移动失败: ${error.message}`);
     }
   }
@@ -151,7 +187,7 @@ class AIPlayerConnection {
         ctx: state.ctx,
         metadata: {
           turn: state.ctx?.turn || 0,
-          current_player: state.ctx?.currentPlayer
+          current_bgio_player_id: state.ctx?.currentPlayer
         }
       };
       
@@ -223,6 +259,10 @@ class AIPlayerConnection {
         this.client.stop();
         this.client = null;
       }
+      
+      // 重置防重复处理标志
+      this.lastProcessedTurn = -1;
+      this.isProcessingMove = false;
       
       this.status = 'disconnected';
     } catch (error) {

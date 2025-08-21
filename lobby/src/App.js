@@ -181,7 +181,7 @@ function App() {
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-            🎮 多人游戏平台
+            🎮 Qame Platform v0.1
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ marginRight: '15px' }}>
@@ -202,7 +202,7 @@ function App() {
                   fontSize: '14px'
                 }}
               >
-                游戏大厅
+                对战大厅
               </button>
               
               {user.role === 'admin' && (

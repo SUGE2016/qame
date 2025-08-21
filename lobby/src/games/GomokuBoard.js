@@ -111,7 +111,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
               {ctx.gameover.winner ? `玩家 ${getPlayerSymbol(ctx.gameover.winner)} 获胜！` : '游戏平局！'}
             </h2>
             <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>
-              🎉 游戏结束！可使用上方"返回游戏大厅"按钮回到大厅
+              🎉 游戏结束！可使用上方"返回对战大厅"按钮回到大厅
             </p>
           </div>
         ) : (

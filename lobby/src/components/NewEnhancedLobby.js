@@ -128,14 +128,15 @@ const NewEnhancedLobby = ({ onGameStart }) => {
       ]);
 
       if (gamesResponse.code === 200) {
-        setGames(gamesResponse.data);
+        const gamesList = gamesResponse.data.games || [];
+        setGames(gamesList);
         // 如果没有选择游戏且有可用游戏，选择第一个
-        if (gamesResponse.data.length > 0 && !selectedGame) {
-          setSelectedGame(gamesResponse.data[0].id);
+        if (gamesList.length > 0 && !selectedGame) {
+          setSelectedGame(gamesList[0].id);
         }
         // 如果当前选择的游戏不在新获取的游戏列表中，重置选择
-        if (selectedGame && !gamesResponse.data.some(game => game.id === selectedGame)) {
-          setSelectedGame(gamesResponse.data.length > 0 ? gamesResponse.data[0].id : '');
+        if (selectedGame && !gamesList.some(game => game.id === selectedGame)) {
+          setSelectedGame(gamesList.length > 0 ? gamesList[0].id : '');
         }
       }
 

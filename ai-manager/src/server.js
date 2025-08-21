@@ -12,6 +12,11 @@ app.use(express.json());
 // AI玩家会话管理器
 const aiManager = new AIPlayerSessionManager();
 
+// 健康检查路由
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // 启动服务器
 app.listen(port, () => {
   console.log(`🤖 [AI Manager] AI管理服务运行在端口 ${port}`);

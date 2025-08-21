@@ -271,6 +271,58 @@ router.delete('/:matchId', async (req, res) => {
     const match = await Match.findById(matchId);
     if (!match) return notFound(res, 'Match不存在');
 
+    // 在删除数据库记录之前，先让所有玩家从boardgame.io server离开
+    if (match.bgio_match_id && match.game_id) {
+      try {
+        console.log(`🧹 [API Server] 删除Match前清理boardgame.io server: ${match.bgio_match_id}`);
+        
+        const gameServerUrl = process.env.GAME_SERVER_URL || 'http://game-server:8000';
+        
+        // 获取game-server中的match详情
+        const gameMatchResponse = await fetch(`${gameServerUrl}/games/${match.game_id}/${match.bgio_match_id}`);
+        if (gameMatchResponse.ok) {
+          const gameMatchData = await gameMatchResponse.json();
+          const players = gameMatchData.players || [];
+          
+          // 获取数据库中所有玩家的credentials
+          const dbPlayers = await MatchPlayer.findByMatchId(matchId);
+          
+          // 让所有玩家离开match
+          for (const dbPlayer of dbPlayers) {
+            if (dbPlayer.seat_index !== null && dbPlayer.seat_index !== undefined) {
+              try {
+                const credentials = dbPlayer.player_credentials || '';
+                
+                const leaveResponse = await fetch(`${gameServerUrl}/games/${match.game_id}/${match.bgio_match_id}/leave`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    playerID: dbPlayer.seat_index.toString(),
+                    credentials: credentials
+                  })
+                });
+                
+                if (leaveResponse.ok) {
+                  console.log(`✅ [API Server] 玩家 ${dbPlayer.seat_index} 已离开Match ${match.bgio_match_id}`);
+                } else {
+                  console.warn(`⚠️ [API Server] 玩家 ${dbPlayer.seat_index} 离开Match ${match.bgio_match_id} 失败:`, leaveResponse.status);
+                }
+              } catch (error) {
+                console.error(`❌ [API Server] 玩家 ${dbPlayer.seat_index} 离开Match ${match.bgio_match_id} 时出错:`, error);
+              }
+            }
+          }
+        } else {
+          console.warn(`⚠️ [API Server] 无法从game-server获取Match ${match.bgio_match_id} 信息:`, gameMatchResponse.status);
+        }
+      } catch (error) {
+        console.error('❌ [API Server] 清理boardgame.io server失败:', error);
+        // 继续删除数据库记录，不因为清理失败而阻止删除
+      }
+    }
+
     await Match.delete(matchId);
     return ok(res, null, 'Match删除成功');
   } catch (error) {
@@ -331,7 +383,7 @@ router.post('/:matchId/players', async (req, res) => {
             playerID: addedPlayer.seat_index.toString(),
             playerName: addedPlayer.player_name,
             data: { 
-              playerId: addedPlayer.id,
+              playerId: addedPlayer.player_id,
               playerType: addedPlayer.player_type,
              }
           })
@@ -428,40 +480,35 @@ router.post('/:matchId/start', async (req, res) => {
 
     const bgioMatchId = match.bgio_match_id;
 
-    // 初始化boardgame.io游戏状态 - 通过模拟第一个玩家的连接
+    // 验证boardgame.io游戏实例存在性和连通性
+    // 注意：游戏状态在创建时已通过setup函数初始化，此处主要用于验证
     try {
       const gameServerUrl = process.env.GAME_SERVER_URL || 'http://game-server:8000';
       
-      // 获取第一个玩家（通常是seat_index=0）
-      const firstPlayer = await MatchPlayer.findFirstPlayerByMatchId(matchId);
+      console.log('🎮 [Start Match] 验证boardgame.io游戏实例');
       
-      if (!firstPlayer) {
-        throw new Error('没有找到玩家');
-      }
+      // 通过获取游戏状态来验证实例存在（如果不存在会自动创建）
+      const verifyUrl = `${gameServerUrl}/games/${match.game_id}/${bgioMatchId}`;
       
-      console.log('🎮 [Start Match] 初始化boardgame.io游戏状态，首个玩家:', firstPlayer);
-      
-      // 通过获取游戏状态来触发初始化（如果不存在会自动创建）
-      const initUrl = `${gameServerUrl}/games/${match.game_id}/${bgioMatchId}/${firstPlayer.seat_index}`;
-      
-      const initResponse = await fetch(initUrl, {
+      const verifyResponse = await fetch(verifyUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
         }
       });
       
-      console.log('🎮 [Start Match] boardgame.io初始化响应状态:', initResponse.status);
+      console.log('🎮 [Start Match] boardgame.io验证响应状态:', verifyResponse.status);
+      console.log('🎮 [Start Match] 请求URL:', verifyUrl);
       
-      if (initResponse.ok) {
-        const gameState = await initResponse.json();
-        console.log('✅ [Start Match] boardgame.io游戏状态已初始化，当前玩家:', gameState.ctx?.currentPlayer);
+      if (verifyResponse.ok) {
+        const gameState = await verifyResponse.json();
+        console.log('✅ [Start Match] boardgame.io游戏实例已验证，当前玩家:', gameState.ctx?.currentPlayer);
       } else {
-        console.log('⚠️ [Start Match] boardgame.io初始化返回:', initResponse.status, '可能游戏已存在');
+        console.log('⚠️ [Start Match] boardgame.io验证返回:', verifyResponse.status, '可能游戏已存在');
       }
       
     } catch (error) {
-      console.error('❌ [Start Match] 初始化boardgame.io失败:', error.message);
+      console.error('❌ [Start Match] 验证boardgame.io失败:', error.message);
       // 不阻止match开始，游戏状态可能在玩家连接时自动创建
     }
 

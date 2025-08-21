@@ -10,9 +10,26 @@ class AIPlayerSessionManager {
     this.pgListener = new PostgreSQLListener();
     this.pgListener.connect().then(() => {
       this.pgListener.listen('match_status_changes');
+      // 监听数据库通知：当 match 状态变化时处理 AI 玩家连接
+      // 注意：游戏状态在 boardgame.io 中已预先初始化，此处主要处理连接逻辑
       this.pgListener.on('notification:match_status_changes', (data) => {
-        if (data.payload.operation === 'UPDATE' && data.payload.new_record?.status === 'playing') {
-          this.connectAIPlayersToMatch(data.payload.new_record);
+        console.log(`📨 [AI Manager] 收到数据库通知:`, JSON.stringify(data, null, 2));
+        
+        // 兼容两种payload结构：{ status, match_id, game_id, ... } 或 { new_record: { status, id, game_id } }
+        const payload = data?.payload || {};
+        const operation = payload.operation;
+        const status = payload?.new_record?.status ?? payload?.status;
+        const matchId = payload?.new_record?.id ?? payload?.match_id;
+        const gameId = payload?.new_record?.game_id ?? payload?.game_id;
+        const bgioMatchId = payload?.new_record?.bgio_match_id ?? payload?.bgio_match_id;
+        
+        console.log(`🔍 [AI Manager] 解析通知数据:`, { operation, status, matchId, gameId, bgioMatchId });
+        
+        if (operation === 'UPDATE' && status === 'playing' && matchId) {
+          console.log(`🚀 [AI Manager] 监听到match进入playing，准备连接AI:`, { matchId, gameId });
+          this.connectAIPlayersToMatch({ id: matchId, game_id: gameId });
+        } else {
+          console.log(`⏭️ [AI Manager] 跳过通知 - 不符合条件:`, { operation, status, matchId });
         }
       });
       
@@ -110,7 +127,7 @@ class AIPlayerSessionManager {
 
   async connectAIPlayerToMatch(aiPlayer, matchId, gameId) {
     console.log(`🎮 [AI Manager] 开始连接AI玩家到Match:`, {
-      aiPlayerId: aiPlayer.id,
+      aiPlayerId: aiPlayer.playerId,
       playerName: aiPlayer.player_name,
       matchId,
       gameId
@@ -123,40 +140,37 @@ class AIPlayerSessionManager {
         throw new Error('缺少gameId');
       }
  
-      // 优先使用内存中的客户端
-      let client = this.clients.get(aiPlayer.id);
-      console.log(`🔍 [AI Manager] 检查内存中的客户端:`, {
-        aiPlayerId: aiPlayer.id,
-        hasExistingClient: !!client
-      });
- 
-      if (!client) {
-        // 如果内存中没有，创建新的连接实例
-        const clientConfig = {
-          id: aiPlayer.id,
-          seatIndex: aiPlayer.seatIndex,
-          playerName: aiPlayer.player_name, // 使用 aiPlayer 的玩家名字
-          gameType: gameId,
-          matchId: matchId,
-          gameServerUrl: process.env.GAME_SERVER_URL || 'http://game-server:8000',
-          aiClientEndpoint: aiPlayer.clientEndpoint
-        };
-        
-        console.log(`🆕 [AI Manager] 创建新的AI客户端:`, clientConfig);
-        client = new AIPlayerConnection(clientConfig);
-        this.clients.set(aiPlayer.id, client);
-        console.log(`✅ [AI Manager] AI客户端已创建并存储到内存`);
+      // 先断开并移除现有客户端
+      let existingClient = this.clients.get(aiPlayer.playerId);
+      if (existingClient) {
+        console.log(`🔌 [AI Manager] 断开现有AI客户端:`, { aiPlayerId: aiPlayer.playerId });
+        existingClient.disconnect();
+        this.clients.delete(aiPlayer.playerId);
       }
+      
+      // 每次都创建新的连接实例
+      const clientConfig = {
+        id: aiPlayer.seatIndex, // 使用 seatIndex 作为 boardgame.io 的 playerID
+        seatIndex: aiPlayer.seatIndex,
+        playerName: aiPlayer.playerName, // 使用 aiPlayer 的玩家名字
+        gameType: gameId,
+        matchId: matchId,
+        gameServerUrl: process.env.GAME_SERVER_URL || 'http://game-server:8000',
+        aiClientEndpoint: aiPlayer.clientEndpoint
+      };
+      
+      console.log(`🆕 [AI Manager] 创建新的AI客户端:`, clientConfig);
+      const client = new AIPlayerConnection(clientConfig);
+      this.clients.set(aiPlayer.playerId, client);
+      console.log(`✅ [AI Manager] AI客户端已创建并存储到内存`);
  
       // 如果内存客户端存在，连接到游戏服务器
       if (client && typeof client.connect === 'function') {
         console.log(`🔗 [AI Manager] 连接AI客户端到游戏服务器:`, {
-          aiPlayerId: aiPlayer.id,
+          aiPlayerId: aiPlayer.playerId,
           matchId,
           gameId
         });
-        client.matchId = matchId;
-        client.gameType = gameId;
         await client.connect();
         console.log(`✅ [AI Manager] AI客户端已成功连接到Match: ${matchId}`);
       } else {
@@ -185,7 +199,7 @@ class AIPlayerSessionManager {
       throw error;
     }
   }
-  
+
   /**
    * 关闭AI Manager
    */

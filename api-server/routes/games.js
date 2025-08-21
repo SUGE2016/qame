@@ -2,78 +2,21 @@ const express = require('express');
 const { query } = require('../config/database');
 const router = express.Router();
 
-// 从Game Server获取实际可玩的游戏列表
-async function getAvailableGamesFromGameServer() {
-  try {
-    const gameServerUrl = process.env.GAME_SERVER_URL || 'http://game-server:8000';
-    const { request } = require('undici'); // 使用已有的undici依赖
-    const { body } = await request(`${gameServerUrl}/api/games`);
-    const result = await body.json();
-    
-    if (result.code === 200) {
-      return result.data || [];
-    }
-    return [];
-  } catch (error) {
-    console.error('从Game Server获取游戏列表失败:', error);
-    return [];
-  }
-}
-
-// 获取游戏列表（合并数据库元信息和Game Server实际可玩游戏）
+// 获取游戏列表（仅从数据库获取）
 router.get('/', async (req, res) => {
   try {
-    // 并行获取数据库元信息和Game Server实际可玩游戏
-    const [dbResult, availableGames] = await Promise.all([
-      query(`
-        SELECT id, name, description, min_players, max_players, status, created_at
-        FROM games
-        WHERE status = 'active'
-        ORDER BY name
-      `),
-      getAvailableGamesFromGameServer()
-    ]);
-    
-    // 创建实际可玩游戏的Map
-    const availableGameIds = new Set(availableGames.map(game => game.id));
-    
-    // 合并数据：数据库元信息 + 实际可玩状态
-    const mergedGames = dbResult.rows.map(dbGame => ({
-      ...dbGame,
-      isAvailable: availableGameIds.has(dbGame.id), // 标记是否实际可玩
-      displayName: availableGames.find(ag => ag.id === dbGame.id)?.name || dbGame.name
-    }));
-    
-    // 添加Game Server中有但数据库中没有的游戏（作为临时游戏）
-    const dbGameIds = new Set(dbResult.rows.map(game => game.id));
-    const onlyInGameServer = availableGames.filter(game => !dbGameIds.has(game.id));
-    
-    onlyInGameServer.forEach(game => {
-      mergedGames.push({
-        id: game.id,
-        name: game.name,
-        displayName: game.name,
-        description: `临时游戏：${game.name}`,
-        min_players: 2,
-        max_players: 2,
-        status: 'active',
-        isAvailable: true,
-        isTemporary: true, // 标记为临时游戏
-        created_at: new Date().toISOString()
-      });
-    });
-    
-    // 只返回实际可玩的游戏
-    const playableGames = mergedGames.filter(game => game.isAvailable);
+    const result = await query(`
+      SELECT id, name, description, min_players, max_players, status, created_at
+      FROM games
+      WHERE status = 'active'
+      ORDER BY name
+    `);
     
     res.json({
       code: 200,
       message: '获取游戏列表成功',
-      data: playableGames,
-      meta: {
-        totalInDb: dbResult.rows.length,
-        availableInGameServer: availableGames.length,
-        playable: playableGames.length
+      data: {
+        games: result.rows
       }
     });
   } catch (error) {
@@ -118,4 +61,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

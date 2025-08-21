@@ -21,6 +21,29 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
   
   // 创建toast对象以兼容deleteMatchWithConfirm函数
   const toast = { success: toastSuccess, error: toastError };
+  
+  // 游戏显示名称状态
+  const [gameDisplayName, setGameDisplayName] = useState(gameName);
+
+  // 从API获取游戏显示名称
+  useEffect(() => {
+    const fetchGameInfo = async () => {
+      try {
+        const response = await api.getGames();
+        if (response.code === 200) {
+          const game = response.data.games.find(g => g.id === gameName);
+          if (game && game.name) {
+            setGameDisplayName(game.name);
+          }
+        }
+      } catch (error) {
+        console.error('获取游戏信息失败:', error);
+        // 保持默认值
+      }
+    };
+
+    fetchGameInfo();
+  }, [gameName]);
   // 获取match信息
   useEffect(() => {
     const fetchMatchInfo = async () => {
@@ -141,7 +164,7 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <h2 style={{ color: '#495057', marginBottom: '10px' }}>🎮 井字棋游戏</h2>
+          <h2 style={{ color: '#495057', marginBottom: '10px' }}>🎮 {gameDisplayName}游戏</h2>
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '15px' }}>
             Match ID: {matchID}
           </p>

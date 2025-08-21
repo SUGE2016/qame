@@ -202,15 +202,6 @@ class Match {
     return result.rows;
   }
 
-  // 获取match的第一个玩家
-  static async getFirstPlayer(matchId) {
-    const result = await query(
-      'SELECT seat_index, player_name, player_type FROM match_players WHERE match_id = $1 ORDER BY seat_index LIMIT 1',
-      [matchId]
-    );
-    return result.rows.length > 0 ? result.rows[0] : null;
-  }
-
   // 根据match ID查找bgio_match_id
   static async findBgioMatchIdByMatchId(matchId) {
     const result = await query('SELECT bgio_match_id FROM matches WHERE id = $1', [matchId]);

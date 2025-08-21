@@ -252,15 +252,6 @@ class MatchPlayer {
     return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
   }
 
-  // 查找match的第一个玩家
-  static async findFirstPlayerByMatchId(matchId) {
-    const result = await query(
-      'SELECT seat_index, player_name, player_type FROM match_players WHERE match_id = $1 ORDER BY seat_index LIMIT 1',
-      [matchId]
-    );
-    return result.rows.length > 0 ? result.rows[0] : null;
-  }
-
   // 更新玩家状态
   static async updateStatus(playerId, status) {
     const result = await query(`

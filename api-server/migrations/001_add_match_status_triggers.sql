@@ -42,6 +42,7 @@ BEGIN
             notification_payload = json_build_object(
                 'operation', 'DELETE',
                 'match_id', COALESCE(OLD.id, ''),
+                'bgio_match_id', COALESCE(OLD.bgio_match_id, ''),
                 'game_id', COALESCE(OLD.game_id, ''),
                 'status', COALESCE(OLD.status, ''),
                 'old_status', null,

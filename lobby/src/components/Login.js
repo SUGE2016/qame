@@ -171,7 +171,7 @@ const Login = ({ onLogin }) => {
           <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
             <p><strong>📝 登录说明：</strong></p>
             <p>• 请联系管理员获取用户名和密码</p>
-            <p>• 登录后即可进入游戏大厅</p>
+            <p>• 登录后即可进入对战大厅</p>
           </div>
         </div>
       </div>

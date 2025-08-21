@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UserManagement from './admin/UserManagement';
-
+import GameManagement from './admin/GameManagement';
 import AIConfigManagement from './admin/AIConfigManagement';
 import GameDatabaseManagement from './admin/GameDatabaseManagement';
 
@@ -77,6 +77,23 @@ const AdminPanel = () => {
           </button>
           <button
             onClick={() => {
+              setActiveTab('games');
+              sessionStorage.setItem('adminActiveTab', 'games');
+            }}
+            style={{
+              padding: '15px 25px',
+              border: 'none',
+              backgroundColor: activeTab === 'games' ? '#3498db' : 'transparent',
+              color: activeTab === 'games' ? 'white' : '#666',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: activeTab === 'games' ? 'bold' : 'normal'
+            }}
+          >
+            🎮 游戏管理
+          </button>
+          <button
+            onClick={() => {
               setActiveTab('game-db');
               sessionStorage.setItem('adminActiveTab', 'game-db');
             }}
@@ -99,6 +116,7 @@ const AdminPanel = () => {
         <div style={{ padding: '20px' }}>
 
           {activeTab === 'users' && <UserManagement />}
+          {activeTab === 'games' && <GameManagement />}
           {activeTab === 'ai-configs' && <AIConfigManagement />}
           {activeTab === 'game-db' && <GameDatabaseManagement />}
         </div>
@@ -107,4 +125,4 @@ const AdminPanel = () => {
   );
 };
 
-export default AdminPanel; 
+export default AdminPanel;
