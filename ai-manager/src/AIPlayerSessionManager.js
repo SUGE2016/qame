@@ -12,7 +12,7 @@ class AIPlayerSessionManager {
       this.pgListener.listen('match_status_changes');
       this.pgListener.on('notification:match_status_changes', (data) => {
         if (data.payload.operation === 'UPDATE' && data.payload.new_record?.status === 'playing') {
-          this.joinAIPlayersToMatch(data.payload.new_record);
+          this.connectAIPlayersToMatch(data.payload.new_record);
         }
       });
       
@@ -45,7 +45,7 @@ class AIPlayerSessionManager {
         
         // 为每个playing状态的match连接AI玩家
         for (const match of playingMatches) {
-          await this.joinAIPlayersToMatch(match);
+          await this.connectAIPlayersToMatch(match);
         }
         
         console.log('✅ [AI Manager] 初始扫描完成');
@@ -92,7 +92,7 @@ class AIPlayerSessionManager {
   /**
    * 让Match中的AI玩家加入游戏
    */
-  async joinAIPlayersToMatch(match) {
+  async connectAIPlayersToMatch(match) {
     try {
       console.log(`🔄 [AI Manager] 处理Match: ${match.id}`);
       
@@ -101,28 +101,26 @@ class AIPlayerSessionManager {
       
       for (const aiPlayer of aiPlayers) {
         // 让AI玩家加入游戏
-        await this.joinAIPlayerToMatch(aiPlayer, match.id, match.game_id);
+        await this.connectAIPlayerToMatch(aiPlayer, match.id, match.game_id);
       }
     } catch (error) {
       console.error(`处理Match ${match.id} 失败:`, error);
     }
   }
 
-
-
-  async joinAIPlayerToMatch(aiPlayer, matchId, gameType) {
+  async connectAIPlayerToMatch(aiPlayer, matchId, gameId) {
     console.log(`🎮 [AI Manager] 开始连接AI玩家到Match:`, {
       aiPlayerId: aiPlayer.id,
       playerName: aiPlayer.player_name,
       matchId,
-      gameType
+      gameId
     });
     
     try {
-      // 仅在提供或已有记录时使用gameType，不做默认fallback
-      if (!gameType) {
-        console.error(`❌ [AI Manager] 缺少gameType参数`);
-        throw new Error('缺少gameType');
+      // 仅在提供或已有记录时使用gameId，不做默认fallback
+      if (!gameId) {
+        console.error(`❌ [AI Manager] 缺少gameId参数`);
+        throw new Error('缺少gameId');
       }
  
       // 优先使用内存中的客户端
@@ -136,10 +134,12 @@ class AIPlayerSessionManager {
         // 如果内存中没有，创建新的连接实例
         const clientConfig = {
           id: aiPlayer.id,
+          seatIndex: aiPlayer.seatIndex,
           playerName: aiPlayer.player_name, // 使用 aiPlayer 的玩家名字
-          gameType: gameType,
+          gameType: gameId,
           matchId: matchId,
-          gameServerUrl: process.env.GAME_SERVER_URL || 'http://game-server:8000'
+          gameServerUrl: process.env.GAME_SERVER_URL || 'http://game-server:8000',
+          aiClientEndpoint: aiPlayer.clientEndpoint
         };
         
         console.log(`🆕 [AI Manager] 创建新的AI客户端:`, clientConfig);
@@ -153,10 +153,10 @@ class AIPlayerSessionManager {
         console.log(`🔗 [AI Manager] 连接AI客户端到游戏服务器:`, {
           aiPlayerId: aiPlayer.id,
           matchId,
-          gameType
+          gameId
         });
         client.matchId = matchId;
-        client.gameType = gameType;
+        client.gameType = gameId;
         await client.connect();
         console.log(`✅ [AI Manager] AI客户端已成功连接到Match: ${matchId}`);
       } else {
@@ -169,7 +169,7 @@ class AIPlayerSessionManager {
       const result = {
         id: aiPlayer.id,
         matchId,
-        gameType: gameType,
+        gameType: gameId,
         status: 'assigned'
       };
       console.log(`🎯 [AI Manager] AI玩家连接完成:`, result);
@@ -178,7 +178,7 @@ class AIPlayerSessionManager {
       console.error(`❌ [AI Manager] 连接AI玩家到游戏失败:`, {
         aiPlayerId: aiPlayer.id,
         matchId,
-        gameType,
+        gameId,
         error: error.message,
         stack: error.stack
       });

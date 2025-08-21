@@ -68,9 +68,7 @@ async function authenticateToken(req, res, next) {
         message: '令牌已过期或无效，请重新登录' 
       });
     }
-    
-    console.log('🔍 Token解码结果:', decoded);
-    
+
     // 验证用户是否仍然存在
     const user = await User.findById(decoded.userId);
     if (!user) {
@@ -79,9 +77,7 @@ async function authenticateToken(req, res, next) {
         message: '用户已被删除，请重新登录' 
       });
     }
-    
-    console.log('👤 找到用户:', { id: user.id, username: user.username, role: user.role });
-    
+
     // 将用户信息添加到请求对象
     req.user = user;
     next();

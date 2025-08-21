@@ -44,7 +44,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
       G.cells &&
       G.cells[position] === null
     ) {
-      moves.placeStone(position);
+      moves.makeMove(position);
     }
   };
 

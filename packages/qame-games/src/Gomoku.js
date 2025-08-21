@@ -27,7 +27,8 @@ const Gomoku = {
   maxPlayers: 2,
 
   moves: {
-    placeStone({ G, playerID }, position) {
+    // 通用移动方法
+    makeMove({ G, playerID }, position) {
       console.log('=== GOMOKU MOVE 被调用 ===');
       console.log('playerID:', playerID, 'position:', position);
       

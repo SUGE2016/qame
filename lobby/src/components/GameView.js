@@ -5,6 +5,8 @@ import { TicTacToe, Gomoku } from '@qame/games';
 import TicTacToeBoard from '../games/TicTacToeBoard';
 import GomokuBoard from '../games/GomokuBoard';
 import { api } from '@qame/shared-utils';
+import { deleteMatchWithConfirm } from '../utils/matchUtils';
+import { useDialog, useToast, DialogRenderer } from '@qame/shared-ui';
 
 const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onReturnToLobby }) => {
   const [matchInfo, setMatchInfo] = useState(null);
@@ -12,6 +14,13 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
   const [playerCredentials, setPlayerCredentials] = useState(null);
   const [credentialsLoading, setCredentialsLoading] = useState(true);
   const clientRef = useRef(null);
+  
+  // Dialog和Toast钩子
+  const { confirm, dialogs } = useDialog();
+  const { success: toastSuccess, error: toastError, ToastContainer } = useToast();
+  
+  // 创建toast对象以兼容deleteMatchWithConfirm函数
+  const toast = { success: toastSuccess, error: toastError };
   // 获取match信息
   useEffect(() => {
     const fetchMatchInfo = async () => {
@@ -221,7 +230,7 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
           />
         )}
         
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button
             onClick={() => {
               if (onReturnToLobby) {
@@ -241,10 +250,41 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
               fontSize: '14px'
             }}
           >
-            ← 返回游戏大厅
+            返回游戏大厅
+          </button>
+          
+          <button
+            onClick={() => {
+              deleteMatchWithConfirm(matchID, {
+                confirm,
+                toast,
+                onSuccess: () => {
+                  if (onReturnToLobby) {
+                    onReturnToLobby();
+                  } else {
+                    window.history.back();
+                  }
+                }
+              });
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🗑️ 删除对局
           </button>
         </div>
       </div>
+      
+      {/* Dialog和Toast组件 */}
+       <DialogRenderer dialogs={dialogs} />
+       <ToastContainer />
     </div>
   );
 };

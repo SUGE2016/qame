@@ -93,10 +93,14 @@ class TicTacToeHandler {
    */
   generatePrompt(G, validMoves, metadata) {
     const { cells } = G;
-    const { move_number = 0 } = metadata;
+    const { move_number = 0, turn = 0, current_player } = metadata;
     
     // 将棋盘状态转换为可读格式
     const board = this.formatBoard(cells);
+    
+    // 确定当前玩家符号
+    const currentPlayerSymbol = current_player === '0' ? 'X' : 'O';
+    const opponentSymbol = current_player === '0' ? 'O' : 'X';
     
     const prompt = `
 当前井字棋棋盘状态：
@@ -105,7 +109,9 @@ ${board}
 图例：X = 玩家X，O = 玩家O，数字 = 可选位置
 
 可选移动位置：${validMoves.join(', ')}
-当前移动轮次：${move_number + 1}
+当前移动轮次：${turn + 1}
+你是玩家：${currentPlayerSymbol}
+对手是玩家：${opponentSymbol}
 
 请分析棋盘状态，选择最佳移动位置。优先考虑：
 1. 如果能获胜，立即选择获胜位置
@@ -136,62 +142,6 @@ ${board}
 -----------
  ${display[6]} | ${display[7]} | ${display[8]} 
 `;
-  }
-
-  /**
-   * 分析游戏状态（可选，用于更高级的策略）
-   * @param {array} cells - 棋盘状态
-   * @param {string} player - 当前玩家 ('X' 或 'O')
-   * @returns {object} 分析结果
-   */
-  analyzeGameState(cells, player) {
-    const opponent = player === 'X' ? 'O' : 'X';
-    
-    // 检查获胜机会
-    const winMove = this.findWinningMove(cells, player);
-    if (winMove !== -1) {
-      return { type: 'win', move: winMove };
-    }
-    
-    // 检查阻挡机会
-    const blockMove = this.findWinningMove(cells, opponent);
-    if (blockMove !== -1) {
-      return { type: 'block', move: blockMove };
-    }
-    
-    return { type: 'strategic' };
-  }
-
-  /**
-   * 查找获胜移动
-   * @param {array} cells - 棋盘状态
-   * @param {string} player - 玩家标识
-   * @returns {number} 获胜位置，-1表示没有
-   */
-  findWinningMove(cells, player) {
-    const winPatterns = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // 行
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // 列
-      [0, 4, 8], [2, 4, 6]             // 对角线
-    ];
-
-    for (const pattern of winPatterns) {
-      const [a, b, c] = pattern;
-      const values = [cells[a], cells[b], cells[c]];
-      
-      // 检查是否有两个相同符号和一个空位
-      const playerCount = values.filter(v => v === player).length;
-      const emptyCount = values.filter(v => v === null).length;
-      
-      if (playerCount === 2 && emptyCount === 1) {
-        // 找到空位
-        if (cells[a] === null) return a;
-        if (cells[b] === null) return b;
-        if (cells[c] === null) return c;
-      }
-    }
-    
-    return -1;
   }
 }
 

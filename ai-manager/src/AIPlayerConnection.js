@@ -1,6 +1,7 @@
 const { Client } = require('boardgame.io/client');
 const { SocketIO } = require('boardgame.io/multiplayer');
 const { getGame } = require('@qame/games');
+const fetch = require('node-fetch');
 
 /**
  * AI玩家连接 - 负责维持AI玩家与game-server的连接
@@ -9,23 +10,27 @@ class AIPlayerConnection {
   constructor(config) {
     // 基本配置
     this.id = config.id;
+    this.seatIndex = config.seatIndex;
     this.playerName = config.playerName || `AI-${String(this.id).slice(0, 8)}`;
-    this.gameType = config.gameType;
+    this.gameId = config.gameType;
     this.matchId = config.matchId;
     
     // 游戏服务器连接
     this.gameServerUrl = config.gameServerUrl || 'http://game-server:8000';
+    
+    // AI客户端端点
+    this.aiClientEndpoint = config.aiClientEndpoint;
+    
     this.client = null;
+    this.unsubscribe = null; // 存储取消订阅函数
     
     // 简化的状态管理
     this.status = 'created';
     this.gameState = null;
     this.createdAt = new Date();
 
-    console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI玩家连接已创建: ${this.playerName}`);
+    console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI玩家连接已创建: ${this.playerName}, seatIndex: ${this.seatIndex}`);
   }
-
-
 
   /**
    * 连接到游戏服务器
@@ -39,7 +44,7 @@ class AIPlayerConnection {
       this.client = Client({
         game: this._getGameConfig(),
         multiplayer: SocketIO({ server: this.gameServerUrl }),
-        playerID: this.id,
+        playerID: this.seatIndex.toString(),
         matchID: this.matchId,
         debug: false
       });
@@ -65,15 +70,15 @@ class AIPlayerConnection {
    */
   _getGameConfig() {
     // 使用 @qame/games 包中的 getGame 函数
-    return getGame(this.gameType);
+    return getGame(this.gameId);
   }
 
   /**
    * 设置客户端事件监听
    */
   _setupClientListeners() {
-    // 监听游戏状态变化
-    this.client.subscribe((state) => {
+    // 监听游戏状态变化，保存取消订阅函数
+    this.unsubscribe = this.client.subscribe((state) => {
       if (state) {
         this.gameState = state;
         console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] DEBUG: 游戏状态更新: turn ${state.ctx?.turn || 0}`);
@@ -83,6 +88,9 @@ class AIPlayerConnection {
           this._handleGameOver(state);
           return;
         }
+        
+        // 检查是否轮到AI玩家行动
+        this._checkAndMakeMove(state);
       }
 
       console.debug(`[${new Date().toISOString()}] [ai-player:${this.playerName}] DEBUG: 游戏状态更新: ${JSON.stringify(state)}`);
@@ -102,21 +110,97 @@ class AIPlayerConnection {
   }
 
   /**
-   * 执行移动
+   * 检查并执行AI移动
    */
-  async executeMove(move) {
+  async _checkAndMakeMove(state) {
     try {
-      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 执行移动: ${JSON.stringify(move)}`);
+      // 检查是否轮到当前AI玩家
+      if (state.ctx?.currentPlayer !== this.seatIndex.toString()) {
+        return;
+      }
       
-      // 使用 boardgame.io client 执行移动
-      if (this.client && this.client.moves) {
-        // 根据游戏类型调用相应的移动方法
-        // 这里需要根据具体的游戏规则来实现
-        console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 移动已执行`);
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 轮到AI玩家行动`);
+      
+      // 调用LLM AI服务获取移动决策
+      const move = await this._getAIMove(state);
+      
+      if (move !== null && move !== undefined && move !== -1) {
+        // 执行移动
+        await this.executeMove(move);
+      } else {
+        console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 无法获取有效的AI移动`);
       }
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 执行移动失败: ${error.message}`);
+      console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 检查并执行移动失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 调用LLM AI服务获取移动决策
+   */
+  async _getAIMove(state) {
+    try {
+      const aiServiceUrl = this.aiClientEndpoint;
+      
+      const requestBody = {
+        game_id: this.gameId,
+        match_id: this.matchId,
+        player_id: this.seatIndex.toString(),
+        G: state.G,
+        ctx: state.ctx,
+        metadata: {
+          turn: state.ctx?.turn || 0,
+          current_player: state.ctx?.currentPlayer
+        }
+      };
+      
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 调用AI服务: ${aiServiceUrl}/move`);
+      
+      const response = await fetch(`${aiServiceUrl}/move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        timeout: 10000
+      });
+      
+      if (!response.ok) {
+        throw new Error(`AI服务响应错误: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI服务返回移动: ${result.move}`);
+      
+      return result.move;
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 调用AI服务失败: ${error.message}`);
+      return -1;
+    }
+  }
+
+  /**
+   * 执行移动
+   */
+  async executeMove(move) {
+    console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 执行移动:`, move);
+    
+    try {
+      if (this.client && this.client.moves) {
+        // 使用约定的通用移动方法名 'makeMove'
+        if (this.client.moves.makeMove) {
+          console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 调用通用移动方法 makeMove，位置: ${move}`);
+          this.client.moves.makeMove(move);
+        } else {
+          console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 游戏未实现约定的 makeMove 方法`);
+        }
+      } else {
+        console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 客户端或移动方法不可用`);
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 执行移动失败:`, error);
     }
   }
 
@@ -127,6 +211,13 @@ class AIPlayerConnection {
     try {
       this.status = 'disconnecting';
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI客户端断开连接`);
+
+      // 取消游戏状态订阅
+      if (this.unsubscribe) {
+        this.unsubscribe();
+        this.unsubscribe = null;
+        console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] DEBUG: 已取消游戏状态订阅`);
+      }
 
       if (this.client) {
         this.client.stop();

@@ -82,18 +82,23 @@ class Match {
 
     const match = new Match(matchResult.rows[0]);
 
-    // 获取玩家信息
-    const playersResult = await query(`
-      SELECT 
-        mp.*,
-        u.username as user_name
-      FROM match_players mp
-      LEFT JOIN users u ON mp.user_id = u.id
-      WHERE mp.match_id = $1
-      ORDER BY mp.seat_index
-    `, [matchId]);
-
-    match.players = playersResult.rows;
+    // 复用 MatchPlayer.findByMatchId() 获取玩家信息
+    const MatchPlayer = require('./MatchPlayer');
+    const players = await MatchPlayer.findByMatchId(matchId);
+    match.players = players.map(p => ({
+      id: p.id,
+      seat_index: p.seat_index,
+      player_id: p.player_id,
+      player_type: p.player_type,
+      player_name: p.player_name,
+      status: p.status,
+      user_name: p.user_name,
+      user_id: p.user_id,
+      client_endpoint: p.client_endpoint,
+      ai_client_name: p.ai_client_name,
+      joined_at: p.joined_at
+    }));
+    
     return match;
   }
 
@@ -182,14 +187,19 @@ class Match {
   // 获取match的AI玩家信息
   static async getAIPlayers(matchId) {
     const result = await query(`
-      SELECT mp.*
+      SELECT 
+        mp.*,
+        ac.endpoint as client_endpoint,
+        ac.name as ai_client_name
       FROM match_players mp
+      LEFT JOIN ai_players ap ON mp.player_id = ap.id
+      LEFT JOIN ai_clients ac ON ap.ai_client_id = ac.id
       WHERE mp.match_id = $1 
         AND mp.player_type = 'ai' 
         AND mp.status = 'joined'
       ORDER BY mp.seat_index
     `, [matchId]);
-    return result.rows.map(r => ({ ...r, endpoint: null, config_schema: null, ai_type_name: null }));
+    return result.rows;
   }
 
   // 获取match的第一个玩家

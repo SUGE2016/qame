@@ -25,12 +25,19 @@ const TicTacToe = {
   maxPlayers: 2,
 
   moves: {
-    clickCell({ G, playerID }, id) {
-      if (G.cells[id] !== null) {
-        console.log('❌ 无效移动：格子已被占用');
+    // 通用移动方法
+    makeMove({ G, playerID }, id) {
+      // 检查位置是否有效
+      if (id < 0 || id >= 9) {
         return INVALID_MOVE;
       }
       
+      // 检查位置是否已被占用
+      if (G.cells[id] !== null) {
+        return INVALID_MOVE;
+      }
+      
+      // 放置棋子
       G.cells[id] = playerID;
       console.log(`✅ 玩家 ${playerID} 在位置 ${id} 放置棋子`);
     },

@@ -10,9 +10,16 @@ class MatchPlayer {
     const result = await query(`
       SELECT 
         mp.*,
-        u.username as user_name
+        p.user_id,
+        u.username as user_name,
+        p.ai_player_id,
+        ac.endpoint as client_endpoint,
+        ac.name as ai_client_name
       FROM match_players mp
-      LEFT JOIN users u ON mp.user_id = u.id
+      LEFT JOIN players p ON mp.player_id = p.id
+      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN ai_players ap ON p.ai_player_id = ap.id
+      LEFT JOIN ai_clients ac ON ap.ai_client_id = ac.id
       WHERE mp.match_id = $1
       ORDER BY mp.seat_index
     `, [matchId]);
@@ -25,9 +32,16 @@ class MatchPlayer {
     const result = await query(`
       SELECT 
         mp.*,
-        u.username as user_name
+        p.user_id,
+        u.username as user_name,
+        p.ai_player_id,
+        ac.endpoint as client_endpoint,
+        ac.name as ai_client_name
       FROM match_players mp
-      LEFT JOIN users u ON mp.user_id = u.id
+      LEFT JOIN players p ON mp.player_id = p.id
+      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN ai_players ap ON p.ai_player_id = ap.id
+      LEFT JOIN ai_clients ac ON ap.ai_client_id = ac.id
       WHERE mp.id = $1
     `, [playerId]);
 
@@ -112,18 +126,18 @@ class MatchPlayer {
     return -1;
   }
 
-  // 检查AI类型是否存在
-  static async checkAITypeExists(aiTypeId) {
-    const result = await query('SELECT * FROM ai_types WHERE id = $1 AND status = $2', [aiTypeId, 'active']);
+  // 检查AI客户端是否存在
+  static async checkAIClientExists(clientId) {
+    const result = await query('SELECT * FROM ai_clients WHERE id = $1 AND status = $2', [clientId, 'active']);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
   // 检查AI玩家是否已存在
-  static async checkAIExists(matchId, aiTypeId) {
+  static async checkAIExists(matchId, playerId) {
     const result = await query(`
       SELECT * FROM match_players 
-      WHERE match_id = $1 AND ai_type_id = $2
-    `, [matchId, aiTypeId]);
+      WHERE match_id = $1 AND player_id = $2
+    `, [matchId, playerId]);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
@@ -268,9 +282,8 @@ class MatchPlayer {
       playerType: this.player_type,
       playerName: this.player_name,
       status: this.status,
-      isAI: this.player_type === 'ai',
-      aiTypeName: this.ai_type_name,
-      aiProviderName: this.ai_provider_name,
+      aiClientName: this.ai_client_name,
+      clientEndpoint: this.client_endpoint,
       userName: this.user_name,
       userId: this.user_id,
       joinedAt: this.joined_at

@@ -9,50 +9,47 @@ DECLARE
 BEGIN
     -- 构建通知载荷
     IF TG_OP = 'INSERT' THEN
-        notification_payload = json_build_object(
-            'operation', 'INSERT',
-            'match_id', NEW.id,
-            'game_id', NEW.game_id,
-            'status', NEW.status,
-            'old_status', null,
-            'creator_id', NEW.creator_id,
-            'max_players', NEW.max_players,
-            'min_players', NEW.min_players,
-            'current_players', NEW.current_players,
-            'timestamp', extract(epoch from now())
-        );
-    ELSIF TG_OP = 'UPDATE' THEN
-        -- 只有当状态实际发生变化时才发送通知
-        IF OLD.status != NEW.status THEN
             notification_payload = json_build_object(
-                'operation', 'UPDATE',
+                'operation', 'INSERT',
                 'match_id', NEW.id,
                 'game_id', NEW.game_id,
                 'status', NEW.status,
-                'old_status', OLD.status,
+                'old_status', null,
                 'creator_id', NEW.creator_id,
                 'max_players', NEW.max_players,
                 'min_players', NEW.min_players,
-                'current_players', NEW.current_players,
                 'timestamp', extract(epoch from now())
             );
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- 只有当状态实际发生变化时才发送通知
+        IF OLD.status != NEW.status THEN
+                notification_payload = json_build_object(
+                    'operation', 'UPDATE',
+                    'match_id', NEW.id,
+                    'game_id', NEW.game_id,
+                    'status', NEW.status,
+                    'old_status', OLD.status,
+                    'creator_id', NEW.creator_id,
+                    'max_players', NEW.max_players,
+                    'min_players', NEW.min_players,
+                    'timestamp', extract(epoch from now())
+                );
         ELSE
             -- 状态没有变化，不发送通知
             RETURN NEW;
         END IF;
     ELSIF TG_OP = 'DELETE' THEN
-        notification_payload = json_build_object(
-            'operation', 'DELETE',
-            'match_id', OLD.id,
-            'game_id', OLD.game_id,
-            'status', OLD.status,
-            'old_status', null,
-            'creator_id', OLD.creator_id,
-            'max_players', OLD.max_players,
-            'min_players', OLD.min_players,
-            'current_players', OLD.current_players,
-            'timestamp', extract(epoch from now())
-        );
+            notification_payload = json_build_object(
+                'operation', 'DELETE',
+                'match_id', COALESCE(OLD.id, ''),
+                'game_id', COALESCE(OLD.game_id, ''),
+                'status', COALESCE(OLD.status, ''),
+                'old_status', null,
+                'creator_id', OLD.creator_id,
+                'max_players', COALESCE(OLD.max_players, 0),
+                'min_players', COALESCE(OLD.min_players, 0),
+                'timestamp', extract(epoch from now())
+            );
     END IF;
 
     -- 发送通知到 'match_status_changes' 频道

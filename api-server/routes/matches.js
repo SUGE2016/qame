@@ -330,7 +330,10 @@ router.post('/:matchId/players', async (req, res) => {
           body: JSON.stringify({
             playerID: addedPlayer.seat_index.toString(),
             playerName: addedPlayer.player_name,
-            data: { "hello": "world" }
+            data: { 
+              playerId: addedPlayer.id,
+              playerType: addedPlayer.player_type,
+             }
           })
         });
         

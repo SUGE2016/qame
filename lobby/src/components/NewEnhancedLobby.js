@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@qame/shared-utils';
+import { deleteMatchWithConfirm } from '../utils/matchUtils';
 import { useDialog, DialogRenderer, useToast } from '@qame/shared-ui';
 
 const NewEnhancedLobby = ({ onGameStart }) => {
@@ -38,20 +39,20 @@ const NewEnhancedLobby = ({ onGameStart }) => {
         
         if (userMatch) {
           const playerInMatch = userMatch.players.find(p => p.playerName === currentUser.player?.player_name);
-          const bgioMatchId = userMatch.bgio_match_id || userMatch.id;
+          const matchId = /*userMatch.bgio_match_id || */userMatch.id;
           const seatIndex = playerInMatch.seatIndex.toString();
           
           console.log('🎮 准备进入游戏:', {
             userMatch,
             playerInMatch,
-            bgioMatchId,
+            matchId,
             seatIndex,
             selectedGame,
             onGameStart: typeof onGameStart
           });
           
           info('游戏已开始，正在进入...');
-          onGameStart(bgioMatchId, seatIndex, currentUser.username, selectedGame);
+          onGameStart(matchId, seatIndex, currentUser.username, selectedGame);
         }
       }
     } catch (error) {
@@ -233,24 +234,15 @@ const NewEnhancedLobby = ({ onGameStart }) => {
 
   // 删除Match
   const deleteMatch = async (matchId) => {
-    const confirmed = await confirm('确定要删除这个Match吗？', '确认删除');
-    if (!confirmed) return;
-
-    try {
-      const response = await api.deleteMatch(matchId);
-
-      if (response.code === 200) {
-        console.log('删除成功');
-        success('Match删除成功！');
+    const toast = { success, error };
+    deleteMatchWithConfirm(matchId, {
+      confirm,
+      toast,
+      onSuccess: async () => {
         // 刷新match列表
         await fetchData();
-      } else {
-        error(`删除失败: ${response.message}`);
       }
-    } catch (error) {
-      console.error('删除match失败:', error);
-      error('删除match失败');
-    }
+    });
   };
 
   // 开始Match（创建者）
