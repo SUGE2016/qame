@@ -261,7 +261,7 @@ router.post('/games', async (req, res) => {
     if (min_players < 1 || min_players > 10) {
       return res.status(400).json({
         code: 400,
-        message: '最少玩家数必须在1-10之间',
+        message: '最少选手数必须在1-10之间',
         data: null
       });
     }
@@ -269,7 +269,7 @@ router.post('/games', async (req, res) => {
     if (max_players < 1 || max_players > 10) {
       return res.status(400).json({
         code: 400,
-        message: '最多玩家数必须在1-10之间',
+        message: '最多选手数必须在1-10之间',
         data: null
       });
     }
@@ -277,7 +277,7 @@ router.post('/games', async (req, res) => {
     if (min_players > max_players) {
       return res.status(400).json({
         code: 400,
-        message: '最少玩家数不能大于最多玩家数',
+        message: '最少选手数不能大于最多选手数',
         data: null
       });
     }
@@ -377,7 +377,7 @@ router.put('/games/:id', async (req, res) => {
     if (min_players !== undefined && (min_players < 1 || min_players > 10)) {
       return res.status(400).json({
         code: 400,
-        message: '最少玩家数必须在1-10之间',
+        message: '最少选手数必须在1-10之间',
         data: null
       });
     }
@@ -385,7 +385,7 @@ router.put('/games/:id', async (req, res) => {
     if (max_players !== undefined && (max_players < 1 || max_players > 10)) {
       return res.status(400).json({
         code: 400,
-        message: '最多玩家数必须在1-10之间',
+        message: '最多选手数必须在1-10之间',
         data: null
       });
     }
@@ -396,7 +396,7 @@ router.put('/games/:id', async (req, res) => {
     if (finalMinPlayers > finalMaxPlayers) {
       return res.status(400).json({
         code: 400,
-        message: '最少玩家数不能大于最多玩家数',
+        message: '最少选手数不能大于最多选手数',
         data: null
       });
     }

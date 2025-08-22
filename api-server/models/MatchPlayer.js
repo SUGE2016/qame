@@ -5,7 +5,7 @@ class MatchPlayer {
     Object.assign(this, data);
   }
 
-  // 获取match的所有玩家
+  // 获取match的所有选手
   static async findByMatchId(matchId) {
     const result = await query(`
       SELECT 
@@ -27,7 +27,7 @@ class MatchPlayer {
     return result.rows.map(row => new MatchPlayer(row));
   }
 
-  // 根据ID获取玩家
+  // 根据ID获取选手
   static async findById(playerId) {
     const result = await query(`
       SELECT 
@@ -48,7 +48,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
   }
 
-  // 移除玩家
+  // 移除选手
   static async removePlayer(matchId, playerId) {
     const result = await query(`
       DELETE FROM match_players 
@@ -59,7 +59,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
   }
 
-  // 通过座位索引移除玩家
+  // 通过座位索引移除选手
   static async removePlayerBySeat(matchId, seatIndex) {
     const result = await query(`
       DELETE FROM match_players 
@@ -84,7 +84,7 @@ class MatchPlayer {
     return result.rows.length === 0;
   }
 
-  // 获取用户在match中的玩家信息（包括已离开的玩家，按加入时间倒序）
+  // 获取用户在match中的选手信息（包括已离开的选手，按加入时间倒序）
   static async findByUserAndMatch(userId, matchId) {
     const result = await query(`
       SELECT * FROM match_players 
@@ -107,7 +107,7 @@ class MatchPlayer {
 
   // 获取下一个可用座位
   static async getNextAvailableSeat(matchId) {
-    // 获取最大玩家数
+    // 获取最大选手数
     const matchRes = await query('SELECT max_players FROM matches WHERE id = $1', [matchId]);
     if (!matchRes.rows.length) return -1;
     const maxPlayers = parseInt(matchRes.rows[0].max_players);
@@ -132,7 +132,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
-  // 检查AI玩家是否已存在
+  // 检查AI选手是否已存在
   static async checkAIExists(matchId, playerId) {
     const result = await query(`
       SELECT * FROM match_players 
@@ -161,7 +161,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
-  // 根据用户ID和match ID查找玩家（通过统一玩家表关联）
+  // 根据用户ID和match ID查找选手（通过统一选手表关联）
   static async findByUserIdAndMatchId(userId, matchId) {
     const result = await query(`
       SELECT mp.player_credentials, mp.seat_index 
@@ -172,7 +172,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
-  // 通过bgio_match_id和用户ID查找玩家（通过统一玩家表关联）
+  // 通过bgio_match_id和用户ID查找选手（通过统一选手表关联）
   static async findByBgioMatchIdAndUserId(bgioMatchId, userId) {
     const result = await query(`
       SELECT mp.player_credentials, mp.seat_index 
@@ -198,7 +198,7 @@ class MatchPlayer {
     return result.rows;
   }
 
-  // 查找玩家的活跃matches（统一接口）
+  // 查找选手的活跃matches（统一接口）
   static async findActiveMatchesByPlayerId(playerId) {
     const result = await query(`
       SELECT m.id as match_id, m.game_id, mp.seat_index
@@ -211,9 +211,9 @@ class MatchPlayer {
     return result.rows;
   }
 
-  // 通过player_id添加玩家（统一接口）
+  // 通过player_id添加选手（统一接口）
   static async addPlayerById(matchId, playerId, seatIndex, data = {}) {
-    // 获取玩家信息
+    // 获取选手信息
     const playerResult = await query('SELECT * FROM players WHERE id = $1', [playerId]);
     if (playerResult.rows.length === 0) {
       throw new Error('Player not found');
@@ -233,7 +233,7 @@ class MatchPlayer {
       }
     }
 
-    // 添加玩家到match
+    // 添加选手到match
     const result = await query(`
       INSERT INTO match_players (match_id, seat_index, player_type, player_id, player_name, status)
       VALUES ($1, $2, $3, $4, $5, 'joined')
@@ -243,7 +243,7 @@ class MatchPlayer {
     return new MatchPlayer(result.rows[0]);
   }
 
-  // 按玩家记录ID更新凭证（用于AI或无userId的场景）
+  // 按选手记录ID更新凭证（用于AI或无userId的场景）
   static async updatePlayerCredentialsByPlayerId(playerId, playerCredentials) {
     const result = await query(
       'UPDATE match_players SET player_credentials = $1 WHERE id = $2 RETURNING *',
@@ -252,7 +252,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
   }
 
-  // 更新玩家状态
+  // 更新选手状态
   static async updateStatus(playerId, status) {
     const result = await query(`
       UPDATE match_players 
@@ -264,7 +264,7 @@ class MatchPlayer {
     return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
   }
 
-  // 获取玩家的显示信息（用于前端显示）
+  // 获取选手的显示信息（用于前端显示）
   getDisplayInfo() {
     return {
       id: this.id,
@@ -281,14 +281,14 @@ class MatchPlayer {
     };
   }
 
-  // 检查玩家是否可以被移除 - 统一权限逻辑，不区分玩家类型
+  // 检查选手是否可以被移除 - 统一权限逻辑，不区分选手类型
   canBeRemoved(requestUserId, isCreator) {
-    // 创建者可以移除任何玩家
+    // 创建者可以移除任何选手
     if (isCreator) {
       return true;
     }
     
-    // 玩家可以移除自己（仅限人类玩家有user_id）
+    // 选手可以移除自己（仅限人类选手有user_id）
     return this.user_id === requestUserId;
   }
 }

@@ -10,7 +10,7 @@ class AIPlayerSessionManager {
     this.pgListener = new PostgreSQLListener();
     this.pgListener.connect().then(() => {
       this.pgListener.listen('match_status_changes');
-      // 监听数据库通知：当 match 状态变化时处理 AI 玩家连接
+      // 监听数据库通知：当 match 状态变化时处理 AI 选手连接
       // 注意：游戏状态在 boardgame.io 中已预先初始化，此处主要处理连接逻辑
       this.pgListener.on('notification:match_status_changes', (data) => {
         console.log(`📨 [AI Manager] 收到数据库通知:`, JSON.stringify(data, null, 2));
@@ -60,7 +60,7 @@ class AIPlayerSessionManager {
         const playingMatches = result.data;
         console.log(`📊 [AI Manager] 发现 ${playingMatches.length} 个playing状态的matches`);
         
-        // 为每个playing状态的match连接AI玩家
+        // 为每个playing状态的match连接AI选手
         for (const match of playingMatches) {
           await this.connectAIPlayersToMatch(match);
         }
@@ -75,11 +75,11 @@ class AIPlayerSessionManager {
   }
 
   /**
-   * 获取Match中的AI玩家
+   * 获取Match中的AI选手
    */
   async getAIPlayersInMatch(matchId) {
     try {
-      console.log(`🔍 [AI Manager] 获取Match ${matchId} 中的AI玩家...`);
+      console.log(`🔍 [AI Manager] 获取Match ${matchId} 中的AI选手...`);
       const apiServerUrl = process.env.API_SERVER_URL || 'http://api-server:8001';
       const internalServiceKey = process.env.INTERNAL_SERVICE_KEY || 'internal-service-secret-key-2024';
       
@@ -95,29 +95,29 @@ class AIPlayerSessionManager {
         const aiPlayers = result.data.players.filter(player => 
           player.playerType === 'ai' && player.status === 'joined'
         );
-        console.log(`🤖 [AI Manager] 找到 ${aiPlayers.length} 个AI玩家需要连接`);
+        console.log(`🤖 [AI Manager] 找到 ${aiPlayers.length} 个AI选手需要连接`);
         return aiPlayers;
       }
-      console.log(`⚠️ [AI Manager] 未找到有效的玩家数据`);
+      console.log(`⚠️ [AI Manager] 未找到有效的选手数据`);
       return [];
     } catch (error) {
-      console.error(`❌ [AI Manager] 获取Match ${matchId} 中的AI玩家失败:`, error);
+      console.error(`❌ [AI Manager] 获取Match ${matchId} 中的AI选手失败:`, error);
       return [];
     }
   }
 
   /**
-   * 让Match中的AI玩家加入游戏
+   * 让Match中的AI选手加入游戏
    */
   async connectAIPlayersToMatch(match) {
     try {
       console.log(`🔄 [AI Manager] 处理Match: ${match.id}`);
       
-      // 获取Match中的AI玩家
+      // 获取Match中的AI选手
       const aiPlayers = await this.getAIPlayersInMatch(match.id);
       
       for (const aiPlayer of aiPlayers) {
-        // 让AI玩家加入游戏
+        // 让AI选手加入游戏
         await this.connectAIPlayerToMatch(aiPlayer, match.id, match.game_id);
       }
     } catch (error) {
@@ -126,7 +126,7 @@ class AIPlayerSessionManager {
   }
 
   async connectAIPlayerToMatch(aiPlayer, matchId, gameId) {
-    console.log(`🎮 [AI Manager] 开始连接AI玩家到Match:`, {
+    console.log(`🎮 [AI Manager] 开始连接AI选手到Match:`, {
       aiPlayerId: aiPlayer.playerId,
       playerName: aiPlayer.player_name,
       matchId,
@@ -152,7 +152,7 @@ class AIPlayerSessionManager {
       const clientConfig = {
         id: aiPlayer.seatIndex, // 使用 seatIndex 作为 boardgame.io 的 playerID
         seatIndex: aiPlayer.seatIndex,
-        playerName: aiPlayer.playerName, // 使用 aiPlayer 的玩家名字
+        playerName: aiPlayer.playerName, // 使用 aiPlayer 的选手名字
         gameType: gameId,
         matchId: matchId,
         gameServerUrl: process.env.GAME_SERVER_URL || 'http://game-server:8000',
@@ -186,10 +186,10 @@ class AIPlayerSessionManager {
         gameType: gameId,
         status: 'assigned'
       };
-      console.log(`🎯 [AI Manager] AI玩家连接完成:`, result);
+      console.log(`🎯 [AI Manager] AI选手连接完成:`, result);
       return result;
     } catch (error) {
-      console.error(`❌ [AI Manager] 连接AI玩家到游戏失败:`, {
+      console.error(`❌ [AI Manager] 连接AI选手到游戏失败:`, {
         aiPlayerId: aiPlayer.id,
         matchId,
         gameId,
@@ -207,7 +207,7 @@ class AIPlayerSessionManager {
     try {
       console.log('🔄 [AI Manager] 正在关闭...');
       
-      // 断开所有AI玩家连接
+      // 断开所有AI选手连接
       for (const [clientId, client] of this.clients.entries()) {
         if (typeof client.disconnect === 'function') {
           await client.disconnect();

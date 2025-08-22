@@ -116,17 +116,18 @@ function App() {
     }
   };
 
-  const handleGameStart = (matchID, playerID, playerName, gameName) => {
+  const handleGameStart = (matchID, playerID, playerName, gameName, isSpectator = false) => {
     console.log('🎮 handleGameStart 被调用:', {
       matchID,
       playerID,
       playerName,
       gameName,
+      isSpectator,
       currentView,
       gameState
     });
     
-    const newGameState = { matchID, playerID, playerName, gameName };
+    const newGameState = { matchID, playerID, playerName, gameName, isSpectator };
     setGameState(newGameState);
     sessionStorage.setItem('gameState', JSON.stringify(newGameState));
     setCurrentView('game');
@@ -250,6 +251,7 @@ function App() {
               playerName={gameState.playerName}
               gameName={gameState.gameName}
               onReturnToLobby={handleReturnToLobby}
+              isSpectator={gameState.isSpectator || false}
             />
           )}
         </div>
@@ -266,4 +268,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

@@ -53,10 +53,10 @@ const GameDatabaseManagement = () => {
   };
 
   const formatPlayerInfo = (players) => {
-    if (!players || players.length === 0) return '无玩家';
+    if (!players || players.length === 0) return '无选手';
     
     return players.map((player, index) => {
-      const name = player.name || `玩家${index}`;
+      const name = player.name || `选手${index}`;
       const _id = player.id || 'n/a';
       const data = JSON.stringify(player.data || {});
       return `${name}(${_id})|${data}`;
@@ -121,7 +121,7 @@ const GameDatabaseManagement = () => {
             <tr style={{ backgroundColor: '#f8f9fa' }}>
               <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>游戏类型</th>
               <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>Match ID</th>
-              <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>玩家信息</th>
+              <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>选手信息</th>
               <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>创建时间</th>
               <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>更新时间</th>
               <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>设置数据</th>

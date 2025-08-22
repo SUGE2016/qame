@@ -39,7 +39,7 @@ const TicTacToe = {
       
       // 放置棋子
       G.cells[id] = playerID;
-      console.log(`✅ 玩家 ${playerID} 在位置 ${id} 放置棋子`);
+      console.log(`✅ 选手 ${playerID} 在位置 ${id} 放置棋子`);
     },
     
     reportAIError({ G }, message) {
@@ -60,7 +60,7 @@ const TicTacToe = {
     for (let player of ['0', '1']) {
       const isWinner = IsPlayerVictory(G.cells, player);
       if (isWinner) {
-        console.log(`🏆 服务器端：玩家 ${player} 获胜!`);
+        console.log(`🏆 服务器端：选手 ${player} 获胜!`);
         return { winner: player };
       }
     }
@@ -73,40 +73,11 @@ const TicTacToe = {
 
   onEnd: ({ G, ctx }) => {
     console.log('🎮 游戏结束，最终状态:', { G, ctx });
-    
-    // 只在服务端环境执行
-    if (typeof window === 'undefined' && typeof fetch !== 'undefined') {
-      setImmediate(async () => {
-        try {
-          const matchId = G.matchId;
-          if (matchId) {
-            const response = await fetch(`${process.env.API_SERVER_URL || 'http://api-server:3001'}/api/matches/${matchId}/status`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                status: 'finished',
-                notes: ctx.gameover?.winner ? `玩家 ${ctx.gameover.winner} 获胜` : '游戏平局'
-              })
-            });
-            
-            if (response.ok) {
-              console.log('✅ [Game] Match状态已更新为已完成');
-            } else {
-              console.error('❌ [Game] 更新Match状态失败:', await response.text());
-            }
-          }
-        } catch (error) {
-          console.error('❌ [Game] 更新Match状态时出错:', error.message);
-        }
-      });
-    }
   },
 };
 
 /**
- * 检查指定玩家是否获胜
+ * 检查指定选手是否获胜
  */
 function IsPlayerVictory(cells, player) {
   const positions = [

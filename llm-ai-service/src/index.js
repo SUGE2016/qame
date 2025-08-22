@@ -60,10 +60,8 @@ app.post('/move', async (req, res) => {
     
     // 调用对应游戏的处理器
     const move = await gameHandlers[game_id].getMove(llmAI, G, metadata);
-    
     const thinkingTime = Date.now() - startTime;
-    
-    if (move === -1 || move === null || move === undefined) {
+    if (move < 0 || move === null || move === undefined) {
       return res.status(500).json({
         error: {
           code: 'AI_ERROR',
@@ -81,8 +79,8 @@ app.post('/move', async (req, res) => {
       thinking_time: thinkingTime,
       metadata: {
         algorithm: 'llm-based',
-        model: process.env.LLM_MODEL || 'gpt-3.5-turbo',
-        temperature: parseFloat(process.env.LLM_TEMPERATURE) || 0.7
+        model: process.env.LLM_MODEL,
+        temperature: parseFloat(process.env.LLM_TEMPERATURE)
       }
     });
 
@@ -97,19 +95,6 @@ app.post('/move', async (req, res) => {
       }
     });
   }
-});
-
-// 游戏结束通知接口 (可选实现)
-app.post('/game-end', (req, res) => {
-  const { game_type, match_id, result, final_state } = req.body;
-  
-  console.log(`🏁 [LLM AI] 游戏结束通知: ${game_type}, match: ${match_id}, 结果:`, result);
-  
-  // 这里可以添加学习逻辑，保存游戏数据等
-  
-  res.json({
-    acknowledged: true
-  });
 });
 
 // 启动服务器

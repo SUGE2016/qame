@@ -4,7 +4,7 @@ const { getGame } = require('@qame/games');
 const fetch = require('node-fetch');
 
 /**
- * AI玩家连接 - 负责维持AI玩家与game-server的连接
+ * AI选手连接 - 负责维持AI选手与game-server的连接
  */
 class AIPlayerConnection {
   constructor(config) {
@@ -35,7 +35,7 @@ class AIPlayerConnection {
     
 
 
-    console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI玩家连接已创建: ${this.playerName}, seatIndex: ${this.seatIndex}`);
+    console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: AI选手连接已创建: ${this.playerName}, seatIndex: ${this.seatIndex}`);
   }
 
   /**
@@ -104,7 +104,7 @@ class AIPlayerConnection {
           return;
         }
         
-        // 检查是否轮到AI玩家行动
+        // 检查是否轮到AI选手行动
         this._checkAndMakeMove(state);
       }
 
@@ -119,6 +119,11 @@ class AIPlayerConnection {
     try {
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 游戏已结束`);
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 游戏结果: ${JSON.stringify(state.ctx?.gameover)}`);
+      
+      // 异步更新比赛状态为 finished
+      this._updateMatchStatus('finished').catch(error => {
+        console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 更新比赛状态失败: ${error.message}`);
+      });
       
       // 游戏结束时主动断开连接，避免状态残留
       console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 游戏结束，断开连接`);
@@ -150,7 +155,7 @@ class AIPlayerConnection {
       this.isProcessingMove = true;
       this.lastProcessedTurn = currentTurn;
       
-      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 轮到AI玩家行动`);
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 轮到AI选手行动`);
       
       try {
         // 调用LLM AI服务获取移动决策
@@ -199,7 +204,7 @@ class AIPlayerConnection {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody),
-        timeout: 10000
+        timeout: process.env.LLM_TIMEOUT ? parseInt(process.env.LLM_TIMEOUT) : 0,
       });
       
       if (!response.ok) {
@@ -267,6 +272,35 @@ class AIPlayerConnection {
       this.status = 'disconnected';
     } catch (error) {
       console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 断开连接失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 更新比赛状态
+   */
+  async _updateMatchStatus(status) {
+    try {
+      const apiServerUrl = process.env.API_SERVER_URL || 'http://api-server:8001';
+      const url = `${apiServerUrl}/api/matches/${this.matchId}/status`;
+      
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 更新比赛状态为: ${status}`);
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log(`[${new Date().toISOString()}] [ai-player:${this.playerName}] INFO: 比赛状态更新成功`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] [ai-player:${this.playerName}] ERROR: 更新比赛状态失败: ${error.message}`);
+      throw error;
     }
   }
 

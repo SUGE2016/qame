@@ -108,8 +108,6 @@ class LLMAIService {
   extractMoveFromResponse(content) {
     if (!content) return -1;
 
-    // 尝试多种方式提取数字
-    
     // 方式1: 直接解析为数字
     const directNumber = parseInt(content);
     if (!isNaN(directNumber)) {
@@ -120,22 +118,6 @@ class LLMAIService {
     const numberMatch = content.match(/\d+/);
     if (numberMatch) {
       return parseInt(numberMatch[0]);
-    }
-
-    // 方式3: 查找位置描述
-    const positionKeywords = {
-      '左上': 0, '上中': 1, '右上': 2,
-      '左中': 3, '中心': 4, '右中': 5,
-      '左下': 6, '下中': 7, '右下': 8,
-      'top-left': 0, 'top-center': 1, 'top-right': 2,
-      'middle-left': 3, 'center': 4, 'middle-right': 5,
-      'bottom-left': 6, 'bottom-center': 7, 'bottom-right': 8
-    };
-
-    for (const [keyword, position] of Object.entries(positionKeywords)) {
-      if (content.toLowerCase().includes(keyword.toLowerCase())) {
-        return position;
-      }
     }
 
     console.warn('⚠️ [LLM AI Service] 无法从响应中提取有效移动:', content);

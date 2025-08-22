@@ -146,9 +146,13 @@ export const api = {
   cancelMatch: (matchId) => apiCall(`/api/matches/${matchId}/cancel`, { method: 'POST' }),
   checkGameStatus: (matchId) => apiCall(`/api/matches/${matchId}/check-game-status`, { method: 'POST' }),
   getCredentials: (matchId) => apiCall(`/api/matches/${matchId}/credentials`),
+  updateMatchStatus: (matchId, status) => apiCall(`/api/matches/${matchId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  }),
   syncMatches: () => apiCall('/api/matches/sync', { method: 'POST' }),
 
   // 在线用户相关
   getOnlineUsers: () => apiCall('/api/online/users'),
   setOffline: () => apiCall('/api/online/offline', { method: 'POST' })
-}; 
+};

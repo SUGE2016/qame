@@ -1,18 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 /**
  * 井字棋游戏界面组件
  * 
- * 统一处理所有玩家，不区分AI和人类玩家
+ * 统一处理所有选手，不区分AI和人类选手
  * 
  * @param {Object} G - 游戏状态对象
  * @param {Object} ctx - 游戏上下文对象
  * @param {Object} moves - 可用的移动函数
- * @param {string} playerID - 当前玩家ID
- * @param {boolean} isActive - 当前玩家是否处于活动状态
+ * @param {string} playerID - 当前选手ID
+ * @param {boolean} isActive - 当前选手是否处于活动状态
  * @param {Object} setupData - 设置数据
  */
-const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }) => {
+const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo, onGameEnd }) => {
   // 渲染调试信息（仅在开发模式显示）
   if (process.env.NODE_ENV === 'development') {
     console.log('[Board] 渲染', { 
@@ -21,6 +21,13 @@ const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInf
       gameover: ctx.gameover
     });
   }
+
+  // 监听游戏结束状态
+  useEffect(() => {
+    if (ctx.gameover && onGameEnd) {
+      onGameEnd(ctx.gameover);
+    }
+  }, [ctx.gameover, onGameEnd]);
 
   // 以回合为准，避免 isActive 异常导致无法行动
   const isMyTurn = playerID != null && playerID.toString() === ctx.currentPlayer && !ctx.gameover;
@@ -70,7 +77,7 @@ const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInf
   if (ctx.gameover) {
     if (ctx.gameover.winner) {
       gameStatus = <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#4CAF50', margin: '1rem 0' }}>
-        🎉 玩家 {getPlayerSymbol(ctx.gameover.winner)} 获胜！
+        🎉 选手 {getPlayerSymbol(ctx.gameover.winner)} 获胜！
       </div>;
     } else if (ctx.gameover.draw) {
       gameStatus = <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#FF9800', margin: '1rem 0' }}>
@@ -82,7 +89,7 @@ const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInf
     
     gameStatus = (
       <div style={{ textAlign: 'center', fontSize: '1.2rem', margin: '2rem 0' }}>
-        当前玩家: <span style={{ color: getPlayerColor(ctx.currentPlayer) }}>
+        当前选手: <span style={{ color: getPlayerColor(ctx.currentPlayer) }}>
           {currentPlayerSymbol}
         </span>
       </div>
@@ -96,7 +103,7 @@ const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInf
         {ctx.gameover ? (
           <div>
             <h2 style={{ color: '#4caf50' }}>
-              {ctx.gameover.winner ? `玩家 ${ctx.gameover.winner} 获胜！` : '游戏平局！'}
+              {ctx.gameover.winner ? `选手 ${ctx.gameover.winner} 获胜！` : '游戏平局！'}
             </h2>
             <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>
               🎉 游戏结束！可使用上方"返回对战大厅"按钮回到大厅
@@ -104,7 +111,7 @@ const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInf
           </div>
         ) : (
           <div>
-            <h3>当前玩家: {ctx.currentPlayer}</h3>
+            <h3>当前选手: {ctx.currentPlayer}</h3>
           </div>
         )}
       </div>

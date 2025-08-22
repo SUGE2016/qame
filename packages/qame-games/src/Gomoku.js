@@ -47,7 +47,7 @@ const Gomoku = {
       
       const row = Math.floor(position / 9) + 1;
       const col = (position % 9) + 1;
-      console.log(`✅ 玩家 ${playerID} 在第${row}行第${col}列放置棋子`);
+      console.log(`✅ 选手 ${playerID} 在第${row}行第${col}列放置棋子`);
     },
     
     reportAIError({ G }, message) {
@@ -68,7 +68,7 @@ const Gomoku = {
     for (let player of ['0', '1']) {
       const isWinner = IsGomokuPlayerVictory(G.cells, player);
       if (isWinner) {
-        console.log(`🏆 服务器端：玩家 ${player} 获胜!`);
+        console.log(`🏆 服务器端：选手 ${player} 获胜!`);
         return { winner: player };
       }
     }
@@ -81,34 +81,6 @@ const Gomoku = {
 
   onEnd: ({ G, ctx }) => {
     console.log('🎮 五子棋游戏结束，最终状态:', { G, ctx });
-    
-    if (typeof window === 'undefined' && typeof fetch !== 'undefined') {
-      setImmediate(async () => {
-        try {
-          const matchId = G.matchId;
-          if (matchId) {
-            const response = await fetch(`${process.env.API_SERVER_URL || 'http://api-server:3001'}/api/matches/${matchId}/status`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                status: 'finished',
-                notes: ctx.gameover?.winner ? `玩家 ${ctx.gameover.winner} 获胜` : '五子棋平局'
-              })
-            });
-            
-            if (response.ok) {
-              console.log('✅ [Gomoku] Match状态已更新为已完成');
-            } else {
-              console.error('❌ [Gomoku] 更新Match状态失败:', await response.text());
-            }
-          }
-        } catch (error) {
-          console.error('❌ [Gomoku] 更新Match状态时出错:', error.message);
-        }
-      });
-    }
   },
 };
 

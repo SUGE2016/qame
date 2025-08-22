@@ -21,7 +21,7 @@ services:
       - qame-network
     restart: unless-stopped
 
-  # 游戏大厅应用
+  # 对战大厅应用
   lobby:
     build:
       context: .
@@ -99,7 +99,6 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_PORT=5432
       - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
-      - AI_SERVICE_TIMEOUT=${AI_SERVICE_TIMEOUT:-30000}
     depends_on:
       postgres:
         condition: service_healthy
@@ -165,6 +164,8 @@ services:
       - DB_USER=boardgame_user
       - DB_PASSWORD=${DB_PASSWORD}
       - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
+      - LLM_TIMEOUT=${LLM_TIMEOUT}
+      - API_SERVER_URL=${API_SERVER_URL}
     depends_on:
       game-server:
         condition: service_healthy
@@ -192,6 +193,8 @@ services:
       - .llm-ai-service.env
     environment:
       - NODE_ENV=development
+      - LLM_TIMEOUT=10000
+      - LLM_MODEL=ecnu-max
     networks:
       - qame-network
     restart: unless-stopped
@@ -205,6 +208,7 @@ services:
     environment:
       - NODE_ENV=development
       - LLM_MODEL=ecnu-reasoner
+      - LLM_TIMEOUT=120000
     networks:
       - qame-network
     restart: unless-stopped

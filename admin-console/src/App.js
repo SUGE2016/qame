@@ -19,7 +19,7 @@ function App() {
           
           // 检查是否为管理员
           if (userData.role !== 'admin') {
-            // 非管理员，显示提示并跳转到游戏大厅
+            // 非管理员，显示提示并跳转到对战大厅
             alert('❌ 只有管理员可以访问管理控制台');
             sessionStorage.removeItem('user');
             window.location.href = '/';
@@ -29,15 +29,15 @@ function App() {
           setUser(userData);
           sessionStorage.setItem('user', JSON.stringify(userData));
         } else {
-          // token无效，提示并跳转到游戏大厅登录
-          alert('⚠️ 请先在游戏大厅登录');
+          // token无效，提示并跳转到对战大厅登录
+          alert('⚠️ 请先在对战大厅登录');
           sessionStorage.removeItem('user');
           window.location.href = '/';
           return;
         }
       } catch (error) {
         console.error('验证token失败:', error);
-        alert('⚠️ 请先在游戏大厅登录');
+        alert('⚠️ 请先在对战大厅登录');
         sessionStorage.removeItem('user');
         window.location.href = '/';
         return;
@@ -58,7 +58,7 @@ function App() {
     
     sessionStorage.removeItem('user');
     setUser(null);
-    // 跳转到游戏大厅
+    // 跳转到对战大厅
     window.location.href = '/';
   };
 
@@ -146,7 +146,7 @@ function App() {
                   fontSize: '14px'
                 }}
               >
-                返回游戏大厅
+                返回对战大厅
               </button>
             </div>
             

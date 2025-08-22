@@ -8,12 +8,13 @@ import { api } from '@qame/shared-utils';
 import { deleteMatchWithConfirm } from '../utils/matchUtils';
 import { useDialog, useToast, DialogRenderer } from '@qame/shared-ui';
 
-const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onReturnToLobby }) => {
+const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onReturnToLobby, isSpectator = false }) => {
   const [matchInfo, setMatchInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [playerCredentials, setPlayerCredentials] = useState(null);
   const [credentialsLoading, setCredentialsLoading] = useState(true);
   const clientRef = useRef(null);
+  const gameEndProcessedRef = useRef(false);
   
   // Dialog和Toast钩子
   const { confirm, dialogs } = useDialog();
@@ -24,6 +25,33 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
   
   // 游戏显示名称状态
   const [gameDisplayName, setGameDisplayName] = useState(gameName);
+
+  // 游戏结束处理函数
+  const handleGameEnd = async (gameResult) => {
+    if (gameEndProcessedRef.current) {
+      console.log('🎯 游戏结束已处理，跳过重复调用');
+      return;
+    }
+
+    try {
+      gameEndProcessedRef.current = true;
+      console.log('🎯 检测到游戏结束，更新match状态:', { matchID, gameResult });
+      
+      const response = await api.updateMatchStatus(matchID, 'finished');
+      
+      if (response.code === 200) {
+        console.log('✅ Match状态更新成功:', response.data);
+        // 更新本地matchInfo状态
+        setMatchInfo(prev => prev ? { ...prev, status: 'finished' } : null);
+      } else {
+        console.error('❌ Match状态更新失败:', response.message);
+      }
+    } catch (error) {
+      console.error('❌ 更新match状态出错:', error);
+      // 重置标志以允许重试
+      gameEndProcessedRef.current = false;
+    }
+  };
 
   // 从API获取游戏显示名称
   useEffect(() => {
@@ -69,9 +97,15 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
     fetchMatchInfo();
   }, [matchID]);
 
-  // 获取playerCredentials
+  // 获取playerCredentials - 观战模式下不需要credentials
   useEffect(() => {
     const fetchCredentials = async () => {
+      if (isSpectator) {
+        setCredentialsLoading(false);
+        setPlayerCredentials(null);
+        return;
+      }
+
       try {
         setCredentialsLoading(true);
         console.log('🔐 获取playerCredentials for matchID:', matchID);
@@ -94,12 +128,12 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
     if (matchID) {
       fetchCredentials();
     }
-  }, [matchID]);
+  }, [matchID, isSpectator]);
 
-  // 创建GameClient组件 - 只有在credentials准备好后才创建
+  // 创建GameClient组件 - 观战模式下直接创建，选手模式需要credentials
   const GameClient = useMemo(() => {
-    // 如果还在加载credentials，或者没有credentials，不创建客户端
-    if (credentialsLoading || !playerCredentials) {
+    // 如果不是观战模式且还在加载credentials，不创建客户端
+    if (!isSpectator && (credentialsLoading || !playerCredentials)) {
       console.log('⏳ 等待playerCredentials加载...', { credentialsLoading, playerCredentials });
       return null;
     }
@@ -117,13 +151,13 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
           case 'gomoku':
             return {
               game: Gomoku,
-              board: (props) => <GomokuBoard {...props} matchInfo={matchInfo} />
+              board: (props) => <GomokuBoard {...props} matchInfo={matchInfo} onGameEnd={onGameEnd} />
             };
           case 'tic-tac-toe':
           default:
             return {
               game: TicTacToe,
-              board: (props) => <TicTacToeBoard {...props} matchInfo={matchInfo} />
+              board: (props) => <TicTacToeBoard {...props} matchInfo={matchInfo} onGameEnd={onGameEnd} />
             };
         }
       };
@@ -146,11 +180,28 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
     }
   }, [matchID, playerID, playerName, playerCredentials, credentialsLoading, matchInfo]);
 
+  // 游戏结束处理回调 - 通过棋盘组件传递
+  const onGameEnd = (gameoverState) => {
+    if (!gameEndProcessedRef.current && gameoverState) {
+      console.log('🎯 通过棋盘组件检测到游戏结束状态:', gameoverState);
+      handleGameEnd(gameoverState);
+    }
+  };
+
+  // 重置游戏结束处理标志
+  useEffect(() => {
+    if (matchID) {
+      gameEndProcessedRef.current = false;
+    }
+  }, [matchID]);
+
   // 组件卸载时的清理
   useEffect(() => {
     return () => {
       // 清理客户端引用
       clientRef.current = null;
+      // 重置游戏结束处理标志
+      gameEndProcessedRef.current = false;
     };
   }, []);
 
@@ -164,12 +215,15 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <h2 style={{ color: '#495057', marginBottom: '10px' }}>🎮 {gameDisplayName}游戏</h2>
+          <h2 style={{ color: '#495057', marginBottom: '10px' }}>
+            🎮 {gameDisplayName}游戏
+            {isSpectator && <span style={{ color: '#6c757d', fontSize: '16px', marginLeft: '10px' }}>(观战模式)</span>}
+          </h2>
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '15px' }}>
             Match ID: {matchID}
           </p>
           
-          {/* 玩家信息 */}
+          {/* 选手信息 */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -178,7 +232,7 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
             flexWrap: 'wrap'
           }}>
             {loading ? (
-              <p style={{ color: '#666', fontSize: '14px' }}>加载玩家信息...</p>
+              <p style={{ color: '#666', fontSize: '14px' }}>加载选手信息...</p>
             ) : matchInfo && matchInfo.players ? (
               matchInfo.players.map((player, index) => (
                 <div
@@ -217,7 +271,7 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
                 textAlign: 'center'
               }}>
                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#007bff', marginBottom: '5px' }}>
-                  👤 当前玩家
+                  👤 当前选手
                 </div>
                 <div style={{ fontSize: '14px', color: '#666' }}>
                   {playerName}
@@ -246,10 +300,11 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
         
         {GameClient && (
           <GameClient 
+            ref={clientRef}
             matchID={matchID}
-            playerID={playerID}
+            playerID={isSpectator ? null : playerID}
             playerName={playerName}
-            credentials={playerCredentials}
+            credentials={isSpectator ? null : playerCredentials}
           />
         )}
         
@@ -273,35 +328,37 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
               fontSize: '14px'
             }}
           >
-            返回游戏大厅
+            返回对战大厅
           </button>
           
-          <button
-            onClick={() => {
-              deleteMatchWithConfirm(matchID, {
-                confirm,
-                toast,
-                onSuccess: () => {
-                  if (onReturnToLobby) {
-                    onReturnToLobby();
-                  } else {
-                    window.history.back();
+          {!isSpectator && (
+            <button
+              onClick={() => {
+                deleteMatchWithConfirm(matchID, {
+                  confirm,
+                  toast,
+                  onSuccess: () => {
+                    if (onReturnToLobby) {
+                      onReturnToLobby();
+                    } else {
+                      window.history.back();
+                    }
                   }
-                }
-              });
-            }}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🗑️ 删除对局
-          </button>
+                });
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              🗑️ 删除对局
+            </button>
+          )}
         </div>
       </div>
       

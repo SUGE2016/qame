@@ -105,9 +105,9 @@ router.delete('/clients/:clientId', async (req, res) => {
   }
 });
 
-// ========== AI玩家管理（玩家身份） ==========
+// ========== AI选手管理（选手身份） ==========
 
-// 获取所有AI玩家
+// 获取所有AI选手
 router.get('/players', async (req, res) => {
   try {
     const players = await AIPlayerModel.getAll();
@@ -117,7 +117,7 @@ router.get('/players', async (req, res) => {
   }
 });
 
-// 获取活跃的AI玩家（必须在参数路由之前）
+// 获取活跃的AI选手（必须在参数路由之前）
 router.get('/players/active', async (req, res) => {
   try {
     const players = await AIPlayerModel.getActive();
@@ -127,13 +127,13 @@ router.get('/players/active', async (req, res) => {
   }
 });
 
-// 获取单个AI玩家详情
+// 获取单个AI选手详情
 router.get('/players/:playerId', async (req, res) => {
   try {
     const player = await AIPlayerModel.getById(req.params.playerId);
     
     if (!player) {
-      return res.status(404).json(formatResponse(404, 'AI玩家不存在'));
+      return res.status(404).json(formatResponse(404, 'AI选手不存在'));
     }
     
     res.json(formatResponse(200, '获取成功', player));
@@ -142,7 +142,7 @@ router.get('/players/:playerId', async (req, res) => {
   }
 });
 
-// 根据AI客户端ID获取玩家
+// 根据AI客户端ID获取选手
 router.get('/clients/:clientId/players', async (req, res) => {
   try {
     const players = await AIPlayerModel.getByClientId(req.params.clientId);
@@ -152,7 +152,7 @@ router.get('/clients/:clientId/players', async (req, res) => {
   }
 });
 
-// 创建AI玩家
+// 创建AI选手
 router.post('/players', async (req, res) => {
   try {
     const { player_name, ai_client_id } = req.body;
@@ -178,14 +178,14 @@ router.post('/players', async (req, res) => {
     res.json(formatResponse(200, '创建成功', player));
   } catch (error) {
     if (error.code === '23505') { // 唯一约束违反
-      res.status(400).json(formatResponse(400, '玩家名称已存在'));
+      res.status(400).json(formatResponse(400, '选手名称已存在'));
     } else {
       res.status(500).json(formatResponse(500, '创建失败', error.message));
     }
   }
 });
 
-// 更新AI玩家
+// 更新AI选手
 router.put('/players/:playerId', async (req, res) => {
   try {
     const { player_name, status } = req.body;
@@ -197,26 +197,26 @@ router.put('/players/:playerId', async (req, res) => {
     const player = await AIPlayerModel.update(req.params.playerId, updateData);
     
     if (!player) {
-      return res.status(404).json(formatResponse(404, 'AI玩家不存在'));
+      return res.status(404).json(formatResponse(404, 'AI选手不存在'));
     }
     
     res.json(formatResponse(200, '更新成功', player));
   } catch (error) {
     if (error.code === '23505') { // 唯一约束违反
-      res.status(400).json(formatResponse(400, '玩家名称已存在'));
+      res.status(400).json(formatResponse(400, '选手名称已存在'));
     } else {
       res.status(500).json(formatResponse(500, '更新失败', error.message));
     }
   }
 });
 
-// 删除AI玩家
+// 删除AI选手
 router.delete('/players/:playerId', async (req, res) => {
   try {
     const player = await AIPlayerModel.delete(req.params.playerId);
     
     if (!player) {
-      return res.status(404).json(formatResponse(404, 'AI玩家不存在'));
+      return res.status(404).json(formatResponse(404, 'AI选手不存在'));
     }
     
     res.json(formatResponse(200, '删除成功'));
@@ -238,7 +238,7 @@ router.get('/clients/:clientId/supports/:gameType', async (req, res) => {
   }
 });
 
-// 检查AI玩家是否支持指定游戏
+// 检查AI选手是否支持指定游戏
 router.get('/players/:playerId/supports/:gameType', async (req, res) => {
   try {
     const { playerId, gameType } = req.params;

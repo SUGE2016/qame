@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
+const Player = require('../models/Player');
 
 const router = express.Router();
 
@@ -68,6 +69,24 @@ router.post('/login', async (req, res) => {
 
     // 保存Refresh Token到数据库
     await RefreshToken.create(user.id, refreshToken, refreshTokenExpiresAt);
+
+    // 确保用户有对应的player记录
+    let player = await Player.getByUserId(user.id);
+    if (!player) {
+      // 如果没有player记录，创建一个
+      player = await Player.create({
+        player_name: user.username,
+        player_type: 'human',
+        user_id: user.id,
+        ai_player_id: null,
+        status: 'active'
+      });
+      console.log('✅ 为用户创建player记录:', player);
+    } else {
+      // 如果已有player记录，激活它
+      player = await Player.setUserOnline(user.id);
+      console.log('✅ 激活用户player记录:', player);
+    }
 
     // 设置HttpOnly Cookie
     res.cookie('access_token', accessToken, {
@@ -355,4 +374,4 @@ router.post('/logout', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

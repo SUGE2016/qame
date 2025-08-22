@@ -271,7 +271,7 @@ router.delete('/:matchId', async (req, res) => {
     const match = await Match.findById(matchId);
     if (!match) return notFound(res, 'Match不存在');
 
-    // 在删除数据库记录之前，先让所有玩家从boardgame.io server离开
+    // 在删除数据库记录之前，先让所有选手从boardgame.io server离开
     if (match.bgio_match_id && match.game_id) {
       try {
         console.log(`🧹 [API Server] 删除Match前清理boardgame.io server: ${match.bgio_match_id}`);
@@ -284,10 +284,10 @@ router.delete('/:matchId', async (req, res) => {
           const gameMatchData = await gameMatchResponse.json();
           const players = gameMatchData.players || [];
           
-          // 获取数据库中所有玩家的credentials
+          // 获取数据库中所有选手的credentials
           const dbPlayers = await MatchPlayer.findByMatchId(matchId);
           
-          // 让所有玩家离开match
+          // 让所有选手离开match
           for (const dbPlayer of dbPlayers) {
             if (dbPlayer.seat_index !== null && dbPlayer.seat_index !== undefined) {
               try {
@@ -305,12 +305,12 @@ router.delete('/:matchId', async (req, res) => {
                 });
                 
                 if (leaveResponse.ok) {
-                  console.log(`✅ [API Server] 玩家 ${dbPlayer.seat_index} 已离开Match ${match.bgio_match_id}`);
+                  console.log(`✅ [API Server] 选手 ${dbPlayer.seat_index} 已离开Match ${match.bgio_match_id}`);
                 } else {
-                  console.warn(`⚠️ [API Server] 玩家 ${dbPlayer.seat_index} 离开Match ${match.bgio_match_id} 失败:`, leaveResponse.status);
+                  console.warn(`⚠️ [API Server] 选手 ${dbPlayer.seat_index} 离开Match ${match.bgio_match_id} 失败:`, leaveResponse.status);
                 }
               } catch (error) {
-                console.error(`❌ [API Server] 玩家 ${dbPlayer.seat_index} 离开Match ${match.bgio_match_id} 时出错:`, error);
+                console.error(`❌ [API Server] 选手 ${dbPlayer.seat_index} 离开Match ${match.bgio_match_id} 时出错:`, error);
               }
             }
           }
@@ -331,7 +331,7 @@ router.delete('/:matchId', async (req, res) => {
   }
 });
 
-// 添加玩家到match
+// 添加选手到match
 router.post('/:matchId/players', async (req, res) => {
   try {
     const { matchId } = req.params;
@@ -343,27 +343,27 @@ router.post('/:matchId/players', async (req, res) => {
 
     const match = await Match.findById(matchId);
     if (!match) return notFound(res, 'Match不存在');
-    if (match.status !== 'waiting') return badRequest(res, '只能在等待状态下添加玩家');
+    if (match.status !== 'waiting') return badRequest(res, '只能在等待状态下添加选手');
 
-    // 验证玩家存在
+    // 验证选手存在
     const result = await query('SELECT * FROM players WHERE id = $1', [playerId]);
     if (result.rows.length === 0) {
-      return notFound(res, '玩家不存在');
+      return notFound(res, '选手不存在');
     }
     const player = result.rows[0];
     
-    // 权限检查：创建者可以添加任何玩家，普通用户只能添加自己的玩家
+    // 权限检查：创建者可以添加任何选手，普通用户只能添加自己的选手
     const isCreator = await Match.isCreator(matchId, req.user.id);
     const isOwnPlayer = player.user_id === req.user.id;
     
     if (!isCreator && !isOwnPlayer) {
-      return forbidden(res, '没有权限添加该玩家');
+      return forbidden(res, '没有权限添加该选手');
     }
     
-    // 检查玩家是否已在其他match中
+    // 检查选手是否已在其他match中
     const activeMatches = await MatchPlayer.findActiveMatchesByPlayerId(playerId);
     if (activeMatches.length > 0) {
-      return badRequest(res, `该玩家已在其他match中`);
+      return badRequest(res, `该选手已在其他match中`);
     }
     
     // 使用统一的添加方法
@@ -405,14 +405,14 @@ router.post('/:matchId/players', async (req, res) => {
       return serverError(res, `游戏服务器连接失败 - ${error}`);
     }
 
-    return ok(res, addedPlayer.getDisplayInfo(), '玩家添加成功');
+    return ok(res, addedPlayer.getDisplayInfo(), '选手添加成功');
   } catch (error) {
-    console.error('添加玩家失败:', error);
-    return serverError(res, '添加玩家失败');
+    console.error('添加选手失败:', error);
+    return serverError(res, '添加选手失败');
   }
 });
 
-// 移除玩家
+// 移除选手
 router.delete('/:matchId/players/:playerId', async (req, res) => {
   try {
     const { matchId, playerId } = req.params;
@@ -421,12 +421,12 @@ router.delete('/:matchId/players/:playerId', async (req, res) => {
     if (!match) return notFound(res, 'Match不存在');
 
     const player = await MatchPlayer.findById(playerId);
-    if (!player || player.match_id !== matchId) return notFound(res, '玩家不存在');
+    if (!player || player.match_id !== matchId) return notFound(res, '选手不存在');
 
     const isCreator = await Match.isCreator(matchId, req.user.id);
-    if (!player.canBeRemoved(req.user.id, isCreator)) return forbidden(res, '没有权限移除此玩家');
+    if (!player.canBeRemoved(req.user.id, isCreator)) return forbidden(res, '没有权限移除此选手');
 
-    // 移除玩家
+    // 移除选手
     await MatchPlayer.removePlayer(matchId, player.id);
 
     // 同步boardgame.io
@@ -448,10 +448,10 @@ router.delete('/:matchId/players/:playerId', async (req, res) => {
       console.warn('boardgame.io同步失败（忽略）:', e.message);
     }
 
-    return ok(res, null, '玩家移除成功');
+    return ok(res, null, '选手移除成功');
   } catch (error) {
-    console.error('移除玩家失败:', error);
-    return serverError(res, '移除玩家失败');
+    console.error('移除选手失败:', error);
+    return serverError(res, '移除选手失败');
   }
 });
 
@@ -502,14 +502,14 @@ router.post('/:matchId/start', async (req, res) => {
       
       if (verifyResponse.ok) {
         const gameState = await verifyResponse.json();
-        console.log('✅ [Start Match] boardgame.io游戏实例已验证，当前玩家:', gameState.ctx?.currentPlayer);
+        console.log('✅ [Start Match] boardgame.io游戏实例已验证，当前选手:', gameState.ctx?.currentPlayer);
       } else {
         console.log('⚠️ [Start Match] boardgame.io验证返回:', verifyResponse.status, '可能游戏已存在');
       }
       
     } catch (error) {
       console.error('❌ [Start Match] 验证boardgame.io失败:', error.message);
-      // 不阻止match开始，游戏状态可能在玩家连接时自动创建
+      // 不阻止match开始，游戏状态可能在选手连接时自动创建
     }
 
     // 更新数据库状态并设置started_at

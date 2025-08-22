@@ -1,12 +1,12 @@
 const db = require('../config/database');
 
 /**
- * 统一玩家模型 - 管理所有类型的玩家（人类、AI）
+ * 统一选手模型 - 管理所有类型的选手（人类、AI）
  * 这个模型消除了到处判断player_type的复杂性
  */
 class Player {
   /**
-   * 创建玩家
+   * 创建选手
    */
   static async create(playerData) {
     const { player_name, player_type, user_id, ai_player_id, status = 'active' } = playerData;
@@ -22,16 +22,16 @@ class Player {
   }
 
   /**
-   * 根据ID获取玩家（包含详细信息）
+   * 根据ID获取选手（包含详细信息）
    */
   static async getById(playerId) {
     const query = `
       SELECT 
         p.*,
-        -- 人类玩家信息
+        -- 人类选手信息
         u.username as user_username,
         u.role as user_role,
-        -- AI玩家信息
+        -- AI选手信息
         ap.player_name as ai_original_name,
         ac.name as ai_client_name,
         ac.endpoint as ai_client_endpoint,
@@ -48,7 +48,7 @@ class Player {
   }
 
   /**
-   * 获取所有玩家
+   * 获取所有选手
    */
   static async getAll(filters = {}) {
     const { player_type, status, limit, offset } = filters;
@@ -76,10 +76,10 @@ class Player {
         COALESCE(u.username, p.player_name) as username,
         COALESCE(u.role, 'ai') as role,
         CASE WHEN p.status = 'active' THEN true ELSE false END as is_online,
-        -- 人类玩家信息
+        -- 人类选手信息
         u.username as user_username,
         u.role as user_role,
-        -- AI玩家信息
+        -- AI选手信息
         ac.name as ai_client_name,
         ac.endpoint as ai_client_endpoint
       FROM players p
@@ -100,7 +100,7 @@ class Player {
   }
 
   /**
-   * 获取在线玩家（人类在线 + AI活跃）
+   * 获取在线选手（人类在线 + AI活跃）
    */
   static async getOnlinePlayers() {
     const query = `
@@ -133,7 +133,7 @@ class Player {
   }
 
   /**
-   * 根据用户ID获取人类玩家
+   * 根据用户ID获取人类选手
    */
   static async getByUserId(userId) {
     const query = `
@@ -146,7 +146,7 @@ class Player {
   }
 
   /**
-   * 根据AI玩家ID获取AI玩家
+   * 根据AI选手ID获取AI选手
    */
   static async getByAIPlayerId(aiPlayerId) {
     const query = `
@@ -159,7 +159,7 @@ class Player {
   }
 
   /**
-   * 更新玩家状态
+   * 更新选手状态
    */
   static async updateStatus(playerId, status) {
     const query = `
@@ -174,7 +174,7 @@ class Player {
   }
 
   /**
-   * 用户上线时激活对应的人类玩家
+   * 用户上线时激活对应的人类选手
    */
   static async setUserOnline(userId) {
     const query = `
@@ -189,7 +189,7 @@ class Player {
   }
 
   /**
-   * 用户离线时设置对应的人类玩家为离线
+   * 用户离线时设置对应的人类选手为离线
    */
   static async setUserOffline(userId) {
     const query = `
@@ -204,7 +204,7 @@ class Player {
   }
 
   /**
-   * 获取玩家统计信息
+   * 获取选手统计信息
    */
   static async getStats() {
     const query = `
@@ -230,7 +230,7 @@ class Player {
   }
 
   /**
-   * 删除玩家
+   * 删除选手
    */
   static async delete(playerId) {
     const query = `DELETE FROM players WHERE id = $1 RETURNING *`;

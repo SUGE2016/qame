@@ -250,7 +250,7 @@ const GameManagement = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>最少玩家数:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>最少选手数:</label>
               <input
                 type="number"
                 min="1"
@@ -267,7 +267,7 @@ const GameManagement = () => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>最多玩家数:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>最多选手数:</label>
               <input
                 type="number"
                 min="1"
@@ -333,7 +333,7 @@ const GameManagement = () => {
               <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>ID</th>
               <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>游戏名称</th>
               <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>描述</th>
-              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>玩家数</th>
+              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>选手数</th>
               <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>状态</th>
               <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>操作</th>
             </tr>

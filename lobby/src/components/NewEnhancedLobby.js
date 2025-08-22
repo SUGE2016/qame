@@ -187,12 +187,12 @@ const NewEnhancedLobby = ({ onGameStart }) => {
     }
   };
 
-  // 添加AI玩家
+  // 添加AI选手
   const addAIPlayer = async (matchId, aiPlayerId, seatIndex = null) => {
     try {
       const aiPlayer = aiPlayers.find(p => p.id === aiPlayerId);
       if (!aiPlayer) {
-        throw new Error('AI玩家不存在');
+        throw new Error('AI选手不存在');
       }
 
       const response = await api.addPlayerToMatch(matchId, {
@@ -201,16 +201,16 @@ const NewEnhancedLobby = ({ onGameStart }) => {
       });
 
       if (response.code === 200) {
-        console.log('AI玩家添加成功:', response.data);
-        success(`AI玩家 ${aiPlayer.player_name} 添加成功！`);
+        console.log('AI选手添加成功:', response.data);
+        success(`AI选手 ${aiPlayer.player_name} 添加成功！`);
         // 刷新match列表
         await fetchData();
       } else {
         error(`添加AI失败: ${response.message}`);
       }
     } catch (error) {
-      console.error('添加AI玩家失败:', error);
-      error('添加AI玩家失败: ' + error.message);
+      console.error('添加AI选手失败:', error);
+      error('添加AI选手失败: ' + error.message);
     }
   };
 
@@ -252,7 +252,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
       const response = await api.startMatch(matchId);
 
       if (response.code === 200) {
-        success('游戏开始！所有玩家正在自动进入游戏...');
+        success('游戏开始！所有选手正在自动进入游戏...');
         await fetchData();
       } else {
         error(`开始失败: ${response.message}`);
@@ -263,7 +263,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
     }
   };
 
-  // 获取玩家在match中的信息
+  // 获取选手在match中的信息
   const getPlayerInMatch = (match) => {
     if (!currentUser?.player) return null;
     return match.players?.find(p => p.id === currentUser.player.id);
@@ -287,7 +287,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
     // 构建选项列表
     let options = [];
     
-    // 如果玩家还没有在比赛中，可以加入
+    // 如果选手还没有在比赛中，可以加入
     if (!playerInMatch) {
       options.push('👤 我要加入');
     }
@@ -317,7 +317,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
     const selectedOption = options[choiceIndex];
     
     if (selectedOption === '👤 我要加入') {
-      // 玩家自己加入
+      // 选手自己加入
       await joinAsHuman(matchId, seatIndex);
     } else if (selectedOption === '🤖 添加AI') {
       // 添加AI
@@ -325,12 +325,12 @@ const NewEnhancedLobby = ({ onGameStart }) => {
     }
   };
 
-  // 加入指定座位作为人类玩家
+  // 加入指定座位作为人类选手
   const joinAsHuman = async (matchId, seatIndex) => {
     try {
       // 使用已缓存的player信息，避免重复API调用
       if (!currentUser?.player?.id) {
-        throw new Error('用户玩家信息不可用，请重新登录');
+        throw new Error('用户选手信息不可用，请重新登录');
       }
       
       const response = await api.addPlayerToMatch(matchId, {
@@ -345,8 +345,8 @@ const NewEnhancedLobby = ({ onGameStart }) => {
       } else {
         error(`加入失败: ${response.message}`);
       }
-    } catch (error) {
-      console.error('加入match失败:', error);
+    } catch (err) {
+      console.error('加入match失败:', err);
       error('加入失败，请检查网络连接');
     }
   };
@@ -354,13 +354,13 @@ const NewEnhancedLobby = ({ onGameStart }) => {
   // 添加AI到指定座位
   const addOnlineAIToMatchWithSeat = async (matchId, seatIndex) => {
     try {
-      // 检查是否有可用的AI玩家
+      // 检查是否有可用的AI选手
       if (aiPlayers.length === 0) {
-        warning('没有可用的AI玩家，请先在AI管理中心创建AI玩家');
+        warning('没有可用的AI选手，请先在AI管理中心创建AI选手');
         return;
       }
 
-      // 让用户选择AI玩家
+      // 让用户选择AI选手
       let selectedPlayer = aiPlayers[0];
 
       if (aiPlayers.length > 1) {
@@ -369,7 +369,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
         );
         
         const idx = await showSelect({ 
-          title: '选择要加入的AI玩家', 
+          title: '选择要加入的AI选手', 
           options 
         });
         
@@ -380,7 +380,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
         }
       }
 
-      // 添加AI玩家到指定座位
+      // 添加AI选手到指定座位
       await addAIPlayer(matchId, selectedPlayer.id, seatIndex);
 
     } catch (e) {
@@ -440,11 +440,11 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                       match.status === 'playing' ? '#28a745' : '#6c757d',
                 fontWeight: 'bold'
               }}>
-                {match.status === 'waiting' ? '等待玩家' : 
+                {match.status === 'waiting' ? '等待选手' : 
                  match.status === 'playing' ? '游戏中' : 
                  match.status === 'finished' ? '已结束' : '已取消'}
               </span></div>
-              <div>玩家: {match.currentPlayerCount}/{match.max_players}</div>
+              <div>选手: {match.currentPlayerCount}/{match.max_players}</div>
               <div>创建者: {match.creator_name}</div>
               <div>创建时间: {new Date(match.created_at).toLocaleString()}</div>
             </div>
@@ -471,6 +471,23 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                     开始游戏
                   </button>
                 )}
+                
+                {match.status === 'playing' && (
+                  <button
+                    onClick={() => onGameStart(match.bgio_match_id, null, currentUser.username, match.game_id, true)}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#17a2b8',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '11px'
+                    }}
+                  >
+                    观战
+                  </button>
+                )}
 
                 <button
                   onClick={() => deleteMatch(match.id)}
@@ -480,7 +497,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                     color: 'white',
                     border: 'none',
                     borderRadius: '3px',
-                    cursor: 'pointer',
+                      cursor: 'pointer',
                     fontSize: '11px'
                   }}
                 >
@@ -498,7 +515,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
           borderRadius: '4px',
           fontSize: '12px'
         }}>
-          <strong>玩家列表:</strong>
+          <strong>选手列表:</strong>
           <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {(() => {
               // 创建座位数组
@@ -540,9 +557,9 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                   {player ? (
                     <>
                       {player.isAI ? '🤖' : '👤'} {player.playerName}
-                      {/* 显示离开按钮：玩家自己或创建者可以移除 */}
+                      {/* 显示离开按钮：选手自己或创建者可以移除 */}
                       {(match.status === 'waiting' && (
-                        (player.id === currentUser.player?.id) ||   // 玩家自己
+                        (player.id === currentUser.player?.id) ||   // 选手自己
                         (isMatchCreator)                           // 或创建者
                       )) && (
                         <button
@@ -591,7 +608,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ margin: 0 }}>🎮 游戏大厅</h1>
+        <h1 style={{ margin: 0 }}>🎮 对战大厅</h1>
 
       </div>
       

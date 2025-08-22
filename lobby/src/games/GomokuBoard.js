@@ -8,11 +8,11 @@ import React, { useEffect, useState } from 'react';
  * @param {Object} G - 游戏状态对象
  * @param {Object} ctx - 游戏上下文对象
  * @param {Object} moves - 可用的移动函数
- * @param {string} playerID - 当前玩家ID
- * @param {boolean} isActive - 当前玩家是否处于活动状态
+ * @param {string} playerID - 当前选手ID
+ * @param {boolean} isActive - 当前选手是否处于活动状态
  * @param {Object} setupData - 设置数据
  */
-const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }) => {
+const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo, onGameEnd }) => {
   // 渲染调试信息（仅在开发模式显示）
   if (process.env.NODE_ENV === 'development') {
     console.log('[Gomoku Board] 渲染', { 
@@ -21,6 +21,13 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
       gameover: ctx.gameover
     });
   }
+
+  // 监听游戏结束状态
+  useEffect(() => {
+    if (ctx.gameover && onGameEnd) {
+      onGameEnd(ctx.gameover);
+    }
+  }, [ctx.gameover, onGameEnd]);
 
   const BOARD_SIZE = 9;
 
@@ -57,14 +64,14 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
   });
 
   /**
-   * 获取玩家棋子符号
+   * 获取选手棋子符号
    */
   const getPlayerSymbol = (player) => {
     return player === '0' ? '●' : '○';
   };
 
   /**
-   * 获取玩家颜色
+   * 获取选手颜色
    */
   const getPlayerColor = (player) => {
     return player === '0' ? '#2c3e50' : '#e74c3c';
@@ -82,7 +89,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
   if (ctx.gameover) {
     if (ctx.gameover.winner) {
       gameStatus = <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#4CAF50', margin: '1rem 0' }}>
-        🎉 玩家 {getPlayerSymbol(ctx.gameover.winner)} 获胜！
+        🎉 选手 {getPlayerSymbol(ctx.gameover.winner)} 获胜！
       </div>;
     } else if (ctx.gameover.draw) {
       gameStatus = <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#FF9800', margin: '1rem 0' }}>
@@ -94,7 +101,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
     
     gameStatus = (
       <div style={{ textAlign: 'center', fontSize: '1.2rem', margin: '2rem 0' }}>
-        当前玩家: <span style={{ color: getPlayerColor(ctx.currentPlayer) }}>
+        当前选手: <span style={{ color: getPlayerColor(ctx.currentPlayer) }}>
           {currentPlayerSymbol}
         </span>
       </div>
@@ -108,7 +115,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
         {ctx.gameover ? (
           <div>
             <h2 style={{ color: '#4caf50' }}>
-              {ctx.gameover.winner ? `玩家 ${getPlayerSymbol(ctx.gameover.winner)} 获胜！` : '游戏平局！'}
+              {ctx.gameover.winner ? `选手 ${getPlayerSymbol(ctx.gameover.winner)} 获胜！` : '游戏平局！'}
             </h2>
             <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>
               🎉 游戏结束！可使用上方"返回对战大厅"按钮回到大厅
@@ -116,7 +123,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
           </div>
         ) : (
           <div>
-            <h3>当前玩家: {getPlayerSymbol(ctx.currentPlayer)}</h3>
+            <h3>当前选手: {getPlayerSymbol(ctx.currentPlayer)}</h3>
           </div>
         )}
       </div>
@@ -183,7 +190,7 @@ const GomokuBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }
         maxWidth: '400px',
         margin: '20px auto 0'
       }}>
-        <p>🎯 五子棋规则：在9×9棋盘上，率先连成5子的玩家获胜</p>
+        <p>🎯 五子棋规则：在9×9棋盘上，率先连成5子的选手获胜</p>
         <p>● 黑子先行，○ 白子后行</p>
         {G.lastMove !== null && (
           <p>✨ 最后一步：第{Math.floor(G.lastMove / 9) + 1}行第{G.lastMove % 9 + 1}列</p>

@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS ai_clients (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- AI玩家表
+-- AI选手表
 CREATE TABLE IF NOT EXISTS ai_players (
     id SERIAL PRIMARY KEY,
     player_name VARCHAR(255) NOT NULL,
@@ -46,17 +46,17 @@ CREATE TABLE IF NOT EXISTS ai_players (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 统一玩家表
+-- 统一选手表
 CREATE TABLE IF NOT EXISTS players (
     id SERIAL PRIMARY KEY,
     player_name VARCHAR(255) NOT NULL,
     player_type VARCHAR(50) NOT NULL CHECK (player_type IN ('human', 'ai')),
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 人类玩家关联
-    ai_player_id INTEGER REFERENCES ai_players(id) ON DELETE CASCADE, -- AI玩家关联
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- 人类选手关联
+    ai_player_id INTEGER REFERENCES ai_players(id) ON DELETE CASCADE, -- AI选手关联
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- 确保人类玩家有user_id，AI玩家有ai_player_id
+    -- 确保人类选手有user_id，AI选手有ai_player_id
     CONSTRAINT check_player_type_consistency CHECK (
         (player_type = 'human' AND user_id IS NOT NULL AND ai_player_id IS NULL) OR
         (player_type = 'ai' AND ai_player_id IS NOT NULL AND user_id IS NULL)
@@ -77,19 +77,19 @@ CREATE TABLE IF NOT EXISTS matches (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 比赛玩家表
+-- 比赛选手表
 CREATE TABLE IF NOT EXISTS match_players (
     id SERIAL PRIMARY KEY,
     match_id VARCHAR(255) NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
     player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     seat_index INTEGER NOT NULL,
-    player_credentials VARCHAR(255), -- boardgame.io的玩家凭证
+    player_credentials VARCHAR(255), -- boardgame.io的选手凭证
     status VARCHAR(50) DEFAULT 'joined' CHECK (status IN ('joined', 'left', 'kicked')),
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     left_at TIMESTAMP,
     -- 确保每个match中的座位索引唯一
     UNIQUE(match_id, seat_index),
-    -- 确保每个玩家在同一match中只能有一个活跃记录
+    -- 确保每个选手在同一match中只能有一个活跃记录
     UNIQUE(match_id, player_id)
 );
 

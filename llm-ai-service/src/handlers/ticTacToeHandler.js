@@ -15,7 +15,6 @@ class TicTacToeHandler {
     try {
       // 计算有效移动
       const validMoves = this.calculateValidMoves(G.cells);
-      
       if (validMoves.length === 0) {
         console.warn('⚠️ [井字棋] 没有有效移动');
         return -1;
@@ -24,37 +23,20 @@ class TicTacToeHandler {
       // 生成游戏状态描述的提示词
       const prompt = this.generatePrompt(G, validMoves, metadata);
       
-      // 提示词内容已通过LLM请求体打印，避免重复日志
-      
       // 调用LLM获取移动
       const move = await llmAI.getAIMove(prompt);
-      
+
       // 验证移动是否有效
       if (!this.isValidMove(move, validMoves)) {
         console.warn(`⚠️ [井字棋] LLM返回无效移动 ${move}, 有效移动: ${validMoves}`);
-        
-        // 如果LLM返回无效移动，随机选择一个有效移动
-        const randomIndex = Math.floor(Math.random() * validMoves.length);
-        const fallbackMove = validMoves[randomIndex];
-        
-        console.log(`🎲 [井字棋] 使用随机移动: ${fallbackMove}`);
-        return fallbackMove;
+        return -2;
       }
       
       console.log(`✅ [井字棋] LLM选择移动: ${move}`);
       return move;
       
     } catch (error) {
-      console.error('❌ [井字棋] 处理移动失败:', error);
-      
-      // 发生错误时随机选择移动
-      if (validMoves && validMoves.length > 0) {
-        const randomIndex = Math.floor(Math.random() * validMoves.length);
-        const fallbackMove = validMoves[randomIndex];
-        console.log(`🎲 [井字棋] 错误回退，随机移动: ${fallbackMove}`);
-        return fallbackMove;
-      }
-      
+      console.error('❌ [井字棋] 处理移动失败:', error);      
       return -1;
     }
   }
@@ -93,12 +75,12 @@ class TicTacToeHandler {
    */
   generatePrompt(G, validMoves, metadata) {
     const { cells } = G;
-    const { move_number = 0, turn = 0, current_player } = metadata;
+    const { turn = 0, current_player } = metadata;
     
     // 将棋盘状态转换为可读格式
     const board = this.formatBoard(cells);
     
-    // 确定当前玩家符号
+    // 确定当前选手符号
     const currentPlayerSymbol = current_player === '0' ? 'X' : 'O';
     const opponentSymbol = current_player === '0' ? 'O' : 'X';
     
@@ -106,12 +88,11 @@ class TicTacToeHandler {
 当前井字棋棋盘状态：
 ${board}
 
-图例：X = 玩家X，O = 玩家O，数字 = 可选位置
-
+图例：X = 选手X，O = 选手O，数字 = 可选位置
 可选移动位置：${validMoves.join(', ')}
 当前移动轮次：${turn + 1}
-你是玩家：${currentPlayerSymbol}
-对手是玩家：${opponentSymbol}
+你是选手：${currentPlayerSymbol}
+对手是选手：${opponentSymbol}
 
 请分析棋盘状态，选择最佳移动位置。优先考虑：
 1. 如果能获胜，立即选择获胜位置
@@ -132,7 +113,8 @@ ${board}
   formatBoard(cells) {
     const display = cells.map((cell, index) => {
       if (cell === null) return index.toString();
-      return cell;
+      // 将playerID转换为传统的X/O符号
+      return cell === '0' ? 'X' : 'O';
     });
 
     return `

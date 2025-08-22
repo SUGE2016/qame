@@ -60,7 +60,7 @@ const AIConfigManagement = () => {
         setPlayers(result.data || []);
       }
     } catch (err) {
-      console.error('加载AI玩家失败:', err);
+      console.error('加载AI选手失败:', err);
     }
   };
 
@@ -144,7 +144,7 @@ const AIConfigManagement = () => {
   };
 
   const deleteClient = async (clientId) => {
-    const confirmed = await confirmDanger('确定要删除这个AI客户端吗？关联的AI玩家也会被删除。');
+    const confirmed = await confirmDanger('确定要删除这个AI客户端吗？关联的AI选手也会被删除。');
     if (!confirmed) return;
 
     setLoading(true);
@@ -154,7 +154,7 @@ const AIConfigManagement = () => {
       if (result.code === 200) {
         success('AI客户端已删除');
         loadClients();
-        loadPlayers(); // 重新加载玩家列表，因为关联玩家可能被删除
+        loadPlayers(); // 重新加载选手列表，因为关联选手可能被删除
       } else {
         error('删除失败: ' + result.message);
       }
@@ -165,7 +165,7 @@ const AIConfigManagement = () => {
     }
   };
 
-  // ========== AI玩家管理 ==========
+  // ========== AI选手管理 ==========
   const openCreatePlayerModal = () => {
     setPlayerFormData({
       playerName: '',
@@ -177,7 +177,7 @@ const AIConfigManagement = () => {
 
   const savePlayer = async () => {
     if (!playerFormData.playerName || !playerFormData.aiClientId) {
-      error('请填写玩家名称并选择AI客户端');
+      error('请填写选手名称并选择AI客户端');
       return;
     }
 
@@ -190,7 +190,7 @@ const AIConfigManagement = () => {
       });
       
       if (result.code === 200) {
-        success('AI玩家创建成功');
+        success('AI选手创建成功');
         setShowCreatePlayerModal(false);
         loadPlayers();
       } else {
@@ -204,7 +204,7 @@ const AIConfigManagement = () => {
   };
 
   const deletePlayer = async (playerId) => {
-    const confirmed = await confirmDanger('确定要删除这个AI玩家吗？');
+    const confirmed = await confirmDanger('确定要删除这个AI选手吗？');
     if (!confirmed) return;
 
     setLoading(true);
@@ -212,7 +212,7 @@ const AIConfigManagement = () => {
       const result = await api.deleteAIPlayer(playerId);
       
       if (result.code === 200) {
-        success('AI玩家已删除');
+        success('AI选手已删除');
         loadPlayers();
       } else {
         error('删除失败: ' + result.message);
@@ -398,7 +398,7 @@ const AIConfigManagement = () => {
           )}
         </div>
 
-        {/* AI玩家管理 */}
+        {/* AI选手管理 */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '8px',
@@ -413,7 +413,7 @@ const AIConfigManagement = () => {
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <div style={{ fontWeight: 'bold' }}>AI玩家列表 ({players.length})</div>
+            <div style={{ fontWeight: 'bold' }}>AI选手列表 ({players.length})</div>
             <button
               onClick={openCreatePlayerModal}
               style={{
@@ -426,16 +426,16 @@ const AIConfigManagement = () => {
               }}
               disabled={loading}
             >
-              ➕ 创建AI玩家
+              ➕ 创建AI选手
             </button>
           </div>
           
           {players.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
               <div style={{ fontSize: '48px', marginBottom: '10px' }}>👤</div>
-              <div>暂无AI玩家</div>
+              <div>暂无AI选手</div>
               <div style={{ fontSize: '14px', marginTop: '5px' }}>
-                点击"创建AI玩家"开始创建AI玩家实例
+                点击"创建AI选手"开始创建AI选手实例
               </div>
             </div>
           ) : (
@@ -498,7 +498,7 @@ const AIConfigManagement = () => {
                   }}>
                     <div>
                       <div><strong>AI客户端:</strong> {player.client_name || 'N/A'}</div>
-                      <div><strong>玩家ID:</strong> {player.id}</div>
+                      <div><strong>选手ID:</strong> {player.id}</div>
                     </div>
                     <div>
                       <div><strong>端点地址:</strong> {player.client_endpoint || 'N/A'}</div>
@@ -675,7 +675,7 @@ const AIConfigManagement = () => {
         </div>
       )}
 
-      {/* 创建AI玩家模态框 */}
+      {/* 创建AI选手模态框 */}
       {showCreatePlayerModal && (
         <div style={{
           position: 'fixed',
@@ -701,13 +701,13 @@ const AIConfigManagement = () => {
               backgroundColor: '#f8f9fa',
               borderRadius: '8px 8px 0 0'
             }}>
-              <h3 style={{ margin: 0, color: '#2c3e50' }}>创建AI玩家</h3>
+              <h3 style={{ margin: 0, color: '#2c3e50' }}>创建AI选手</h3>
             </div>
 
             <div style={{ padding: '20px' }}>
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  玩家名称:
+                  选手名称:
                 </label>
                 <input
                   type="text"

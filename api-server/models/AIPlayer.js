@@ -1,7 +1,7 @@
 const { query } = require('../config/database');
 
 class AIPlayerModel {
-  // 创建AI玩家
+  // 创建AI选手
   static async create(playerData) {
     try {
       const {
@@ -19,12 +19,12 @@ class AIPlayerModel {
 
       return result.rows[0];
     } catch (error) {
-      console.error('创建AI玩家失败:', error);
+      console.error('创建AI选手失败:', error);
       throw error;
     }
   }
 
-  // 更新AI玩家信息
+  // 更新AI选手信息
   static async update(playerId, updateData) {
     try {
       const {
@@ -57,12 +57,12 @@ class AIPlayerModel {
 
       return result.rows[0];
     } catch (error) {
-      console.error('更新AI玩家失败:', error);
+      console.error('更新AI选手失败:', error);
       throw error;
     }
   }
 
-  // 删除AI玩家
+  // 删除AI选手
   static async delete(playerId) {
     try {
       const result = await query(`
@@ -71,12 +71,12 @@ class AIPlayerModel {
 
       return result.rows[0];
     } catch (error) {
-      console.error('删除AI玩家失败:', error);
+      console.error('删除AI选手失败:', error);
       throw error;
     }
   }
 
-  // 获取所有AI玩家  
+  // 获取所有AI选手  
   static async getAll() {
     try {
       const result = await query(`
@@ -91,12 +91,12 @@ class AIPlayerModel {
 
       return result.rows;
     } catch (error) {
-      console.error('获取AI玩家列表失败:', error);
+      console.error('获取AI选手列表失败:', error);
       throw error;
     }
   }
 
-  // 根据ID获取AI玩家
+  // 根据ID获取AI选手
   static async getById(playerId) {
     try {
       const result = await query(`
@@ -117,12 +117,12 @@ class AIPlayerModel {
       const row = result.rows[0];
       return row;
     } catch (error) {
-      console.error('获取AI玩家失败:', error);
+      console.error('获取AI选手失败:', error);
       throw error;
     }
   }
 
-  // 根据玩家名称获取AI玩家
+  // 根据选手名称获取AI选手
   static async getByName(playerName) {
     try {
       const result = await query(`
@@ -143,12 +143,12 @@ class AIPlayerModel {
       const row = result.rows[0];
       return row;
     } catch (error) {
-      console.error('根据名称获取AI玩家失败:', error);
+      console.error('根据名称获取AI选手失败:', error);
       throw error;
     }
   }
 
-  // 根据AI客户端ID获取所有玩家
+  // 根据AI客户端ID获取所有选手
   static async getByClientId(clientId) {
     try {
       const result = await query(`
@@ -164,12 +164,12 @@ class AIPlayerModel {
 
       return result.rows;
     } catch (error) {
-      console.error('根据客户端ID获取AI玩家失败:', error);
+      console.error('根据客户端ID获取AI选手失败:', error);
       throw error;
     }
   }
 
-  // 获取活跃的AI玩家
+  // 获取活跃的AI选手
   static async getActive() {
     try {
       const result = await query(`
@@ -185,12 +185,12 @@ class AIPlayerModel {
 
       return result.rows;
     } catch (error) {
-      console.error('获取活跃AI玩家失败:', error);
+      console.error('获取活跃AI选手失败:', error);
       throw error;
     }
   }
 
-  // 检查AI玩家是否支持指定游戏
+  // 检查AI选手是否支持指定游戏
   static async supportsGame(playerId, gameType) {
     try {
       const player = await this.getById(playerId);
@@ -200,7 +200,7 @@ class AIPlayerModel {
       
       return player.client_supported_games && player.client_supported_games.includes(gameType);
     } catch (error) {
-      console.error('检查AI玩家游戏支持失败:', error);
+      console.error('检查AI选手游戏支持失败:', error);
       return false;
     }
   }

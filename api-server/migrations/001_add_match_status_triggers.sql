@@ -88,7 +88,7 @@ CREATE TRIGGER trigger_match_delete_notify
     EXECUTE FUNCTION notify_match_status_change();
 
 -- 创建额外的通知函数，用于监听match_players表的变化
--- 这对于AI Manager了解玩家加入/离开情况很有用
+-- 这对于AI Manager了解选手加入/离开情况很有用
 CREATE OR REPLACE FUNCTION notify_match_player_change()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -105,7 +105,7 @@ BEGIN
             'timestamp', extract(epoch from now())
         );
     ELSIF TG_OP = 'UPDATE' THEN
-        -- 玩家状态变化（如离开游戏）
+        -- 选手状态变化（如离开游戏）
         IF OLD.status != NEW.status THEN
             notification_payload = json_build_object(
                 'operation', 'PLAYER_STATUS_CHANGED',

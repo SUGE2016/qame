@@ -66,7 +66,7 @@ class Match {
     return result.rows.map(row => new Match(row));
   }
 
-  // 获取match及其玩家信息
+  // 获取match及其选手信息
   static async findByIdWithPlayers(matchId) {
     const matchResult = await query(`
       SELECT m.*, g.name as game_name, u.username as creator_name
@@ -82,7 +82,7 @@ class Match {
 
     const match = new Match(matchResult.rows[0]);
 
-    // 复用 MatchPlayer.findByMatchId() 获取玩家信息
+    // 复用 MatchPlayer.findByMatchId() 获取选手信息
     const MatchPlayer = require('./MatchPlayer');
     const players = await MatchPlayer.findByMatchId(matchId);
     match.players = players.map(p => ({
@@ -133,7 +133,7 @@ class Match {
     return result.rows.length > 0;
   }
 
-  // 获取match的玩家数量
+  // 获取match的选手数量
   static async getPlayerCount(matchId) {
     const result = await query(
       'SELECT COUNT(*) as count FROM match_players WHERE match_id = $1',
@@ -156,7 +156,7 @@ class Match {
 
     const playerCount = await this.getPlayerCount(matchId);
     if (playerCount < match.min_players || playerCount > match.max_players) {
-      return { canStart: false, reason: `玩家数量不符合要求 (当前${playerCount}人，需要${match.min_players}-${match.max_players}人)` };
+      return { canStart: false, reason: `选手数量不符合要求 (当前${playerCount}人，需要${match.min_players}-${match.max_players}人)` };
     }
 
     return { canStart: true, reason: null };
@@ -184,7 +184,7 @@ class Match {
     return result.rows.length > 0 ? new Match(result.rows[0]) : null;
   }
 
-  // 获取match的AI玩家信息
+  // 获取match的AI选手信息
   static async getAIPlayers(matchId) {
     const result = await query(`
       SELECT 

@@ -9,7 +9,7 @@ const port = process.env.PORT || 3002;
 app.use(cors());
 app.use(express.json());
 
-// AI玩家会话管理器
+// AI选手会话管理器
 const aiManager = new AIPlayerSessionManager();
 
 // 健康检查路由
