@@ -14,13 +14,11 @@ import React, { useEffect } from 'react';
  */
 const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo, onGameEnd }) => {
   // 渲染调试信息（仅在开发模式显示）
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Board] 渲染', { 
-      playerID, 
-      currentPlayer: ctx.currentPlayer, 
-      gameover: ctx.gameover
-    });
-  }
+  console.debug('[Board] 渲染', { 
+    playerID, 
+    currentPlayer: ctx.currentPlayer, 
+    gameover: ctx.gameover
+  });
 
   // 监听游戏结束状态
   useEffect(() => {

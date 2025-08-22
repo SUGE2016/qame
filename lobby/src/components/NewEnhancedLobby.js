@@ -452,6 +452,24 @@ const NewEnhancedLobby = ({ onGameStart }) => {
 
           {/* 操作按钮 */}
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {/* 观战按钮 - 任何人都可以观战正在进行的游戏 */}
+            {match.status === 'playing' && (
+              <button
+                onClick={() => onGameStart(match.id, null, currentUser.username, match.game_id, true)}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '11px'
+                }}
+              >
+                观战
+              </button>
+            )}
+            
             {/* 创建者专属按钮 */}
             {isMatchCreator && (
               <>
@@ -469,23 +487,6 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                     }}
                   >
                     开始游戏
-                  </button>
-                )}
-                
-                {match.status === 'playing' && (
-                  <button
-                    onClick={() => onGameStart(match.bgio_match_id, null, currentUser.username, match.game_id, true)}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#17a2b8',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      fontSize: '11px'
-                    }}
-                  >
-                    观战
                   </button>
                 )}
 

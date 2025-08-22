@@ -93,6 +93,7 @@ services:
       - "8000"
     environment:
       - NODE_ENV=development
+      #- DEBUG=* # for debug only
       - DB_HOST=postgres
       - DB_NAME=boardgame_db
       - DB_USER=boardgame_user

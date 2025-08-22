@@ -298,6 +298,24 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
           )}
         </div>
         
+        {/* 调试信息 - 显示传递给 GameClient 的参数 */}
+        <div style={{ 
+          backgroundColor: '#f0f0f0', 
+          padding: '10px', 
+          margin: '10px 0', 
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontFamily: 'monospace'
+        }}>
+          <div><strong>GameClient 参数调试:</strong></div>
+          <div>matchID: {JSON.stringify(matchID)}</div>
+          <div>playerID: {JSON.stringify(isSpectator ? null : playerID)}</div>
+          <div>playerName: {JSON.stringify(playerName)}</div>
+          <div>credentials: {JSON.stringify(isSpectator ? null : playerCredentials)}</div>
+          <div>isSpectator: {JSON.stringify(isSpectator)}</div>
+        </div>
+
         {GameClient && (
           <GameClient 
             ref={clientRef}
