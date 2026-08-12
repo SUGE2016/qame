@@ -5,10 +5,8 @@ RUN npm config set registry https://registry.npmmirror.com/
 
 WORKDIR /app
 
-# 先复制所有包和package.json
 COPY packages/shared-ui /app/packages/shared-ui
 COPY packages/shared-utils /app/packages/shared-utils
-COPY packages/qame-games /app/packages/qame-games
 COPY lobby/package*.json ./
 
 RUN npm install
@@ -16,11 +14,6 @@ RUN npm install
 WORKDIR /app/packages/shared-ui
 RUN npm run build
 
-# 构建qame-games包
-WORKDIR /app/packages/qame-games
-RUN npm install
-
-# 切换回主工作目录，安装lobby依赖
 WORKDIR /app
 
 # 复制lobby源代码

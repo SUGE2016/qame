@@ -1,32 +1,50 @@
 /**
- * QAME Games - 内置游戏包
- * 统一的游戏逻辑，支持frontend、server、ai-manager
+ * QAME 纯函数规则核（无 boardgame.io）
  */
 
-const { TicTacToe } = require('./TicTacToe.js');
-const { Gomoku } = require('./Gomoku.js');
+const ticTacToe = require('./ticTacToe.js');
+const gomoku = require('./gomoku.js');
 
-module.exports = { TicTacToe, Gomoku };
-
-// 游戏注册表
-const GAMES_REGISTRY = {
-  'tic-tac-toe': TicTacToe,
-  'gomoku': Gomoku,
+const GAMES = {
+  [ticTacToe.id]: ticTacToe,
+  [gomoku.id]: gomoku,
 };
 
-module.exports.GAMES_REGISTRY = GAMES_REGISTRY;
-
-// 获取所有游戏列表
-const getAllGames = () => Object.keys(GAMES_REGISTRY);
-
-// 根据名称获取游戏
-const getGame = (gameName) => {
-  const game = GAMES_REGISTRY[gameName];
-  if (!game) {
-    throw new Error(`游戏 "${gameName}" 不存在`);
-  }
+function getGame(gameId) {
+  const game = GAMES[gameId];
+  if (!game) throw new Error(`游戏 "${gameId}" 不存在`);
   return game;
-};
+}
 
-module.exports.getAllGames = getAllGames;
-module.exports.getGame = getGame;
+function createState(gameId, options = {}) {
+  return getGame(gameId).createState(options);
+}
+
+function legalMoves(gameId, G, playerId) {
+  return getGame(gameId).legalMoves(G, playerId);
+}
+
+function applyMove(gameId, G, playerId, move) {
+  return getGame(gameId).applyMove(G, playerId, move);
+}
+
+function checkEnd(gameId, G) {
+  return getGame(gameId).checkEnd(G);
+}
+
+function getAllGames() {
+  return Object.keys(GAMES);
+}
+
+module.exports = {
+  GAMES,
+  getGame,
+  getAllGames,
+  createState,
+  legalMoves,
+  applyMove,
+  checkEnd,
+  // 兼容旧命名（仅扩展名，不再是 bgio Game 对象）
+  TicTacToe: ticTacToe,
+  Gomoku: gomoku,
+};

@@ -25,24 +25,7 @@ const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInf
   // 以回合为准，避免 isActive 异常导致无法行动
   const isMyTurn = playerID != null && playerID.toString() === ctx.currentPlayer && !ctx.gameover;
 
-  /**
-   * 处理格子点击事件
-   * 
-   * ⚠️ 注意：moves.makeMove 的参数传递方式非常重要！
-   * 
-   * 🔧 boardgame.io 调用机制：
-   * 1. 这里调用 moves.makeMove(id) 时，boardgame.io 会直接传递 id 参数
-   * 2. 游戏逻辑中的函数会直接接收到 id 参数
-   * 3. 所以这里直接传递 id 是正确的，不要改为 moves.makeMove([id])
-   * 
-   * 🚫 错误的调用方式：
-   * - moves.makeMove([id])  // 错误！会导致参数传递问题
-   * 
-   * ✅ 正确的调用方式：
-   * - moves.makeMove(id)    // 正确！boardgame.io 会直接传递
-   * 
-   * @param {number} id - 被点击的格子索引 (0-8)
-   */
+  /** @param {number} id - 格子索引 (0-8) */
   const onClick = (id) => {
     if (
       typeof id === 'number' &&

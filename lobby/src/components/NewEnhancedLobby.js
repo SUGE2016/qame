@@ -395,24 +395,10 @@ const NewEnhancedLobby = ({ onGameStart }) => {
     const isMatchCreator = isCreator(match);
     
     // 检查是否可以开始游戏
-    const canStart = isMatchCreator && 
+    const canStart = isMatchCreator &&
       match.status === 'waiting' &&
-      match.currentPlayerCount >= match.min_players && 
-      match.currentPlayerCount <= match.max_players &&
-      match.bgio_match_id;
-      
-    // 调试信息
-    if (isMatchCreator) {
-      console.log(`🎮 开始游戏按钮检查 (Match ${match.id.substring(0, 8)}):`, {
-        isMatchCreator,
-        status: match.status,
-        playerCount: match.currentPlayerCount,
-        minPlayers: match.min_players,
-        maxPlayers: match.max_players,
-        bgioMatchId: match.bgio_match_id,
-        canStart
-      });
-    }
+      match.currentPlayerCount >= match.min_players &&
+      match.currentPlayerCount <= match.max_players;
 
     return (
       <div

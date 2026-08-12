@@ -1,21 +1,17 @@
 {
   "name": "@qame/games",
-  "version": "1.0.0",
-  "description": "Build-in games for QAME platform",
+  "version": "2.0.0",
+  "description": "Pure game rules for QAME (no boardgame.io)",
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
-    "./TicTacToe": "./src/TicTacToe.js",
-    "./Gomoku": "./src/Gomoku.js"
+    "./ticTacToe": "./src/ticTacToe.js",
+    "./gomoku": "./src/gomoku.js"
   },
   "scripts": {
-    "test": "echo \"No tests yet\"",
-    "lint": "echo \"No linting yet\""
+    "test": "echo \"No tests yet\""
   },
-  "peerDependencies": {
-    "boardgame.io": "^0.50.2"
-  },
-  "keywords": ["qame", "boardgame", "games"],
+  "keywords": ["qame", "games"],
   "author": "QAME Platform",
   "license": "MIT"
 }

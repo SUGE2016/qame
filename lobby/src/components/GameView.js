@@ -1,63 +1,46 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Client } from 'boardgame.io/react';
-import { SocketIO } from 'boardgame.io/multiplayer'
-import { TicTacToe, Gomoku } from '@qame/games';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import TicTacToeBoard from '../games/TicTacToeBoard';
 import GomokuBoard from '../games/GomokuBoard';
 import { api } from '@qame/shared-utils';
 import { deleteMatchWithConfirm } from '../utils/matchUtils';
 import { useDialog, useToast, DialogRenderer } from '@qame/shared-ui';
 
+function buildWsUrl() {
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${window.location.host}/ws`;
+}
+
 const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onReturnToLobby }) => {
   const [matchInfo, setMatchInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [playerCredentials, setPlayerCredentials] = useState(null);
-  const [credentialsLoading, setCredentialsLoading] = useState(true);
-  const clientRef = useRef(null);
-  
-  // Dialog和Toast钩子
+  const [G, setG] = useState(null);
+  const [turn, setTurn] = useState(null);
+  const [status, setStatus] = useState('waiting');
+  const [result, setResult] = useState(null);
+  const [wsError, setWsError] = useState(null);
+  const [gameDisplayName, setGameDisplayName] = useState(gameName);
+  const wsRef = useRef(null);
+
   const { confirm, dialogs } = useDialog();
   const { success: toastSuccess, error: toastError, ToastContainer } = useToast();
-  
-  // 创建toast对象以兼容deleteMatchWithConfirm函数
   const toast = { success: toastSuccess, error: toastError };
-  
-  // 游戏显示名称状态
-  const [gameDisplayName, setGameDisplayName] = useState(gameName);
 
-  // 从API获取游戏显示名称
   useEffect(() => {
-    const fetchGameInfo = async () => {
-      try {
-        const response = await api.getGames();
-        if (response.code === 200) {
-          const game = response.data.games.find(g => g.id === gameName);
-          if (game && game.name) {
-            setGameDisplayName(game.name);
-          }
-        }
-      } catch (error) {
-        console.error('获取游戏信息失败:', error);
-        // 保持默认值
+    api.getGames().then((response) => {
+      if (response.code === 200) {
+        const game = response.data.games.find((g) => g.id === gameName);
+        if (game?.name) setGameDisplayName(game.name);
       }
-    };
-
-    fetchGameInfo();
+    }).catch(() => {});
   }, [gameName]);
-  // 获取match信息
+
   useEffect(() => {
     const fetchMatchInfo = async () => {
       try {
-        // 首先尝试通过我们的API获取match信息
         const matchResponse = await api.getMatches();
         if (matchResponse.code === 200) {
-          // 找到对应的match
-          const currentMatch = matchResponse.data.find(match => 
-            match.bgio_match_id === matchID || match.id === matchID
-          );
-          if (currentMatch) {
-            setMatchInfo(currentMatch);
-          }
+          const currentMatch = matchResponse.data.find((m) => m.id === matchID);
+          if (currentMatch) setMatchInfo(currentMatch);
         }
       } catch (error) {
         console.error('获取match信息失败:', error);
@@ -65,111 +48,89 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
         setLoading(false);
       }
     };
-
-    fetchMatchInfo();
+    if (matchID) fetchMatchInfo();
   }, [matchID]);
 
-  // 获取playerCredentials
+  const applyStateMessage = useCallback((msg) => {
+    if (msg.G !== undefined) setG(msg.G);
+    if (msg.turn !== undefined) setTurn(msg.turn);
+    if (msg.status) setStatus(msg.status);
+    if (msg.result !== undefined) setResult(msg.result);
+    if (msg.type === 'end' && msg.result) {
+      setResult(msg.result);
+      setStatus('finished');
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchCredentials = async () => {
+    if (!matchID) return undefined;
+
+    const ws = new WebSocket(buildWsUrl());
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsError(null);
+      ws.send(JSON.stringify({ type: 'join', matchId: matchID }));
+    };
+
+    ws.onmessage = (ev) => {
+      let msg;
       try {
-        setCredentialsLoading(true);
-        console.log('🔐 获取playerCredentials for matchID:', matchID);
-        
-        const response = await api.getCredentials(matchID);
-        
-        if (response.code === 200) {
-          console.log('✅ 获取playerCredentials成功:', response.data);
-          setPlayerCredentials(response.data.playerCredentials);
-        } else {
-          console.error('❌ 获取playerCredentials失败:', response.message);
-        }
-      } catch (error) {
-        console.error('❌ 获取playerCredentials出错:', error);
-      } finally {
-        setCredentialsLoading(false);
+        msg = JSON.parse(ev.data);
+      } catch {
+        return;
+      }
+      if (msg.type === 'error') {
+        setWsError(msg.message || 'WS 错误');
+        return;
+      }
+      if (msg.type === 'state' || msg.type === 'end') {
+        applyStateMessage(msg);
       }
     };
 
-    if (matchID) {
-      fetchCredentials();
+    ws.onerror = () => setWsError('WebSocket 连接失败');
+    ws.onclose = () => {
+      if (wsRef.current === ws) wsRef.current = null;
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [matchID, applyStateMessage]);
+
+  const onMove = useCallback((move) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      setWsError('连接未就绪');
+      return;
     }
+    ws.send(JSON.stringify({ type: 'move', matchId: matchID, move }));
   }, [matchID]);
 
-  // 创建GameClient组件 - 只有在credentials准备好后才创建
-  const GameClient = useMemo(() => {
-    // 如果还在加载credentials，或者没有credentials，不创建客户端
-    if (credentialsLoading || !playerCredentials) {
-      console.log('⏳ 等待playerCredentials加载...', { credentialsLoading, playerCredentials });
-      return null;
-    }
-
-    try {
-      console.log('🔌 创建boardgame.io客户端:', {
-        server: window.location.origin,
-        gameServer: window.location.origin,
-        willPassPropsAtRender: true
-      });
-
-      // 根据游戏名称选择对应的游戏和棋盘组件
-      const getGameConfig = () => {
-        switch (gameName) {
-          case 'gomoku':
-            return {
-              game: Gomoku,
-              board: (props) => <GomokuBoard {...props} matchInfo={matchInfo} />
-            };
-          case 'tic-tac-toe':
-          default:
-            return {
-              game: TicTacToe,
-              board: (props) => <TicTacToeBoard {...props} matchInfo={matchInfo} />
-            };
-        }
-      };
-
-      const gameConfig = getGameConfig();
-
-      const ClientComponent = Client({
-        game: gameConfig.game,
-        board: gameConfig.board,
-        debug: false, // 关闭debug模式以减少日志输出
-        multiplayer: SocketIO({ 
-          server: window.location.origin
-        })
-      });
-
-      return ClientComponent;
-    } catch (error) {
-      console.error('❌ 创建GameClient失败:', error);
-      return null;
-    }
-  }, [matchID, playerID, playerName, playerCredentials, credentialsLoading, matchInfo]);
-
-  // 组件卸载时的清理
-  useEffect(() => {
-    return () => {
-      // 清理客户端引用
-      clientRef.current = null;
-    };
-  }, []);
+  const ctx = {
+    currentPlayer: turn,
+    gameover: result,
+  };
+  const moves = { makeMove: onMove };
+  const Board = gameName === 'gomoku' ? GomokuBoard : TicTacToeBoard;
 
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ 
-        backgroundColor: 'white', 
-        padding: '20px', 
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
         borderRadius: '8px',
         border: '1px solid #dee2e6',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <h2 style={{ color: '#495057', marginBottom: '10px' }}>🎮 {gameDisplayName}游戏</h2>
+          <h2 style={{ color: '#495057', marginBottom: '10px' }}>🎮 {gameDisplayName}</h2>
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '15px' }}>
             Match ID: {matchID}
           </p>
-          
-          {/* 玩家信息 */}
+
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -179,32 +140,31 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
           }}>
             {loading ? (
               <p style={{ color: '#666', fontSize: '14px' }}>加载玩家信息...</p>
-            ) : matchInfo && matchInfo.players ? (
+            ) : matchInfo?.players ? (
               matchInfo.players.map((player, index) => (
                 <div
                   key={player.id || index}
                   style={{
-                    backgroundColor: player.seatIndex.toString() === playerID ? '#e7f3ff' : '#f8f9fa',
-                    border: player.seatIndex.toString() === playerID ? '2px solid #007bff' : '1px solid #dee2e6',
+                    backgroundColor: String(player.seatIndex) === String(playerID) ? '#e7f3ff' : '#f8f9fa',
+                    border: String(player.seatIndex) === String(playerID) ? '2px solid #007bff' : '1px solid #dee2e6',
                     borderRadius: '8px',
                     padding: '10px 15px',
                     minWidth: '120px',
                     textAlign: 'center'
                   }}
                 >
-                  <div style={{ 
-                    fontSize: '16px', 
+                  <div style={{
+                    fontSize: '16px',
                     fontWeight: 'bold',
                     color: player.seatIndex === 0 ? '#f44336' : '#2196f3',
                     marginBottom: '5px'
                   }}>
-                    {player.isAI ? '🤖' : '👤'} {player.seatIndex === 0 ? 'X' : 'O'}
+                    {player.isAI || player.playerType === 'ai' ? '🤖' : '👤'}{' '}
+                    {player.seatIndex === 0 ? 'X' : 'O'}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#666' }}>
-                    {player.playerName}
-                  </div>
+                  <div style={{ fontSize: '14px', color: '#666' }}>{player.playerName}</div>
                   <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
-                    {player.seatIndex.toString() === playerID ? '(你)' : `座位 ${player.seatIndex}`}
+                    {String(player.seatIndex) === String(playerID) ? '(你)' : `座位 ${player.seatIndex}`}
                   </div>
                 </div>
               ))
@@ -216,53 +176,46 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
                 padding: '10px 15px',
                 textAlign: 'center'
               }}>
-                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#007bff', marginBottom: '5px' }}>
-                  👤 当前玩家
-                </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  {playerName}
-                </div>
-                <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
-                  ID: {playerID}
-                </div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#007bff' }}>👤 {playerName}</div>
+                <div style={{ fontSize: '12px', color: '#999' }}>ID: {playerID}</div>
               </div>
             )}
           </div>
-          
-          {/* Match状态 */}
-          {matchInfo && (
-            <p style={{ color: '#666', fontSize: '12px' }}>
-              状态: <span style={{ 
-                color: matchInfo.status === 'playing' ? '#28a745' : '#6c757d',
-                fontWeight: 'bold'
-              }}>
-                {matchInfo.status === 'waiting' ? '等待中' : 
-                 matchInfo.status === 'playing' ? '游戏中' : 
-                 matchInfo.status === 'finished' ? '已结束' : '已取消'}
-              </span>
-            </p>
+
+          <p style={{ color: '#666', fontSize: '12px' }}>
+            状态:{' '}
+            <span style={{
+              color: status === 'playing' ? '#28a745' : '#6c757d',
+              fontWeight: 'bold'
+            }}>
+              {status === 'waiting' ? '等待中'
+                : status === 'playing' ? '游戏中'
+                  : status === 'finished' ? '已结束' : status}
+            </span>
+          </p>
+          {wsError && (
+            <p style={{ color: '#dc3545', fontSize: '13px' }}>{wsError}</p>
           )}
         </div>
-        
-        {GameClient && (
-          <GameClient 
-            matchID={matchID}
-            playerID={playerID}
-            playerName={playerName}
-            credentials={playerCredentials}
+
+        {G ? (
+          <Board
+            G={G}
+            ctx={ctx}
+            moves={moves}
+            playerID={String(playerID)}
+            isActive={String(playerID) === String(turn) && !result}
+            matchInfo={matchInfo}
           />
+        ) : (
+          <p style={{ textAlign: 'center', color: '#666' }}>
+            {status === 'waiting' ? '对局尚未开始，请创建者点击「开始游戏」' : '等待棋盘状态...'}
+          </p>
         )}
-        
+
         <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button
-            onClick={() => {
-              if (onReturnToLobby) {
-                onReturnToLobby();
-              } else {
-                // 兜底方案：如果没有提供回调，使用状态管理
-                window.history.back();
-              }
-            }}
+            onClick={() => (onReturnToLobby ? onReturnToLobby() : window.history.back())}
             style={{
               padding: '8px 16px',
               backgroundColor: '#6c757d',
@@ -275,18 +228,14 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
           >
             返回游戏大厅
           </button>
-          
           <button
             onClick={() => {
               deleteMatchWithConfirm(matchID, {
                 confirm,
                 toast,
                 onSuccess: () => {
-                  if (onReturnToLobby) {
-                    onReturnToLobby();
-                  } else {
-                    window.history.back();
-                  }
+                  if (onReturnToLobby) onReturnToLobby();
+                  else window.history.back();
                 }
               });
             }}
@@ -304,10 +253,8 @@ const GameView = ({ matchID, playerID, playerName, gameName = 'tic-tac-toe', onR
           </button>
         </div>
       </div>
-      
-      {/* Dialog和Toast组件 */}
-       <DialogRenderer dialogs={dialogs} />
-       <ToastContainer />
+      <DialogRenderer dialogs={dialogs} />
+      <ToastContainer />
     </div>
   );
 };
