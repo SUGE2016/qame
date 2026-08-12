@@ -1,7 +1,8 @@
 # 重构方案：抛弃 boardgame.io（方案 1）
 
-> 状态：待实施  
-> 目标：用自研迷你对局核 + WebSocket 替代 boardgame.io，大幅简化架构。
+> 状态：**已实施（主路径 + Step 4 选手面）**  
+> 目标：用自研迷你对局核 + WebSocket 替代 boardgame.io，大幅简化架构。  
+> 说明：`ai-manager/` 目录仍保留在仓库中但已移出 Compose，可后续删除。
 
 ## 1. 背景与结论
 
@@ -114,6 +115,20 @@ checkEnd(gameId, G) -> null | { winner } | { draw: true }
 | `docker-compose.yml`、`nginx/ssl.conf` | 去掉 game-server、ai-manager；WS 反代到 api-server |
 | `server/` | 删除 |
 | `docs/architecture.md` | 同步新架构 |
+
+### Step 4 — 主动选手面（Agent 参赛）
+
+人组织比赛；Agent 用 seatToken 主动拉局面 / 交手。
+
+| 文件 | 动作 |
+|------|------|
+| `api-server/routes/play.js` | `GET /api/play/:id`、`POST /api/play/:id/move` |
+| `api-server/routes/matches.js` | 入座时签发 `seatToken` |
+| `api-server/runtime/AiTurn.js` | 无 endpoint 时等待主动选手（不报错） |
+| `cli/qame.js` | 极简 CLI：`state` / `move` / `play` |
+| `docs/agent-player.md` | 接入说明 |
+
+回调型 AI（有 endpoint）仍可用；与主动选手可并存。
 
 ## 6. 取舍
 
