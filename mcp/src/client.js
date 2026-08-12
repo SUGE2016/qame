@@ -3,9 +3,10 @@ import crypto from 'node:crypto';
 const BASE = (process.env.QAME_URL || 'http://localhost:8001').replace(/\/$/, '');
 const SALT = process.env.QAME_PASSWORD_SALT || process.env.PASSWORD_SALT || 'your_fixed_salt_here';
 
-/** @type {{ token: string|null, playerId: string|null, seats: Map<string,string> }} */
+/** @type {{ token: string|null, refreshToken: string|null, playerId: string|null, seats: Map<string,string> }} */
 export const session = {
   token: process.env.QAME_TOKEN || null,
+  refreshToken: process.env.QAME_REFRESH_TOKEN || null,
   playerId: null,
   /** matchId -> seatToken */
   seats: new Map(),
@@ -15,7 +16,7 @@ export function hashPassword(password) {
   return crypto.createHash('sha256').update(password + SALT).digest('hex');
 }
 
-export async function api(method, path, { body, seatToken, auth = true } = {}) {
+export async function api(method, path, { body, seatToken, auth = true, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth && session.token) {
     headers.Authorization = `Bearer ${session.token}`;
@@ -37,10 +38,40 @@ export async function api(method, path, { body, seatToken, auth = true } = {}) {
     throw new Error(`QAME ${method} ${path} → HTTP ${res.status} (非 JSON)`);
   }
 
+  if (
+    !_retried &&
+    auth &&
+    !seatToken &&
+    session.refreshToken &&
+    (res.status === 401 || data.code === 401)
+  ) {
+    const ok = await refreshAccessToken();
+    if (ok) {
+      return api(method, path, { body, seatToken, auth, _retried: true });
+    }
+  }
+
   if (!res.ok || (data.code && data.code >= 400)) {
     throw new Error(data.message || `QAME ${method} ${path} → ${res.status}`);
   }
   return data.data !== undefined ? data.data : data;
+}
+
+export async function refreshAccessToken() {
+  if (!session.refreshToken) return false;
+  try {
+    const data = await api('POST', '/api/auth/refresh', {
+      auth: false,
+      body: { refreshToken: session.refreshToken },
+    });
+    if (data.accessToken) {
+      session.token = data.accessToken;
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 export async function login(username, password) {
@@ -50,9 +81,10 @@ export async function login(username, password) {
     body: { username, hashedPassword },
   });
   if (!data.accessToken) {
-    throw new Error('登录成功但未返回 accessToken，请升级 api-server');
+    throw new Error('登录成功但未返回 accessToken，请确认平台版本');
   }
   session.token = data.accessToken;
+  session.refreshToken = data.refreshToken || null;
   return data;
 }
 

@@ -1,7 +1,6 @@
 # QAME 系统架构说明
 
-> **当前目标架构（Python）**：平台 FastAPI + 每游戏独立 Docker 服务。  
-> Node `api-server` 已废弃（见 `api-server/DEPRECATED.md`）。  
+> **当前架构**：平台 FastAPI + 每游戏独立 Docker 服务；已抛弃 boardgame.io 与 Node 后端。  
 > 可插拔讨论：[discuss-pluggable-games.md](./discuss-pluggable-games.md)
 
 ## 1. 拓扑
@@ -14,12 +13,14 @@ Browser ──HTTPS──► nginx
                      └─ /ws      → platform
 
 platform
-  ├─ 账号 / 房间 / 统计 / /api/play BFF / WS
+  ├─ 账号 / 房间 / 统计 / admin / AI 注册 / /api/play BFF / WS
   ├─ HTTP → game-tic-tac-toe :8101
   └─ HTTP → game-gomoku :8102
 
 postgres
 ```
+
+Compose 服务名仍为 `api-server`（兼容 nginx），镜像构建自 `platform/`。
 
 ## 2. 服务
 
@@ -45,12 +46,18 @@ POST /v1/matches/{id}/moves  { seat, move }
 
 ## 4. Agent
 
-- MCP：`mcp/`（仍打平台 `/api/*`）
+- MCP：`mcp/`（打平台 `/api/*`，支持 refresh）
 - Skill：`skills/qame/`
 - 选手：`docs/agent-player.md`
 
 ## 5. 启动
 
 ```bash
+cp .env.example .env   # 按需修改密钥
+./scripts/generate-ssl.sh
 docker compose up --build
 ```
+
+- 大厅：`https://localhost/`
+- 管理台：`https://localhost/admin/`
+- API / MCP：`http://localhost:8001` 或经 nginx 的 `/api/`

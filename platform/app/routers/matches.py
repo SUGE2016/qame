@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from fastapi import APIRouter, Depends
@@ -250,3 +251,46 @@ async def cancel(match_id: str, user=Depends(get_current_user)):
         match_id,
     )
     return ok(None, "游戏已取消")
+
+
+@router.post("/{match_id}/check-game-status")
+async def check_game_status(match_id: str, user=Depends(get_current_user)):
+    m = await db.fetchrow("SELECT * FROM matches WHERE id=$1", match_id)
+    if not m:
+        return err(404, "Match不存在")
+    m = db.record_to_dict(m)
+    if m["status"] != "playing":
+        return ok({"status": m["status"], "result": m.get("result")}, "无运行时状态")
+    try:
+        state = await game_client.get_host_state(m["game_id"], match_id)
+    except Exception:
+        return ok({"status": m["status"], "result": m.get("result")}, "无运行时状态")
+
+    if state.get("status") == "finished" or state.get("result"):
+        await db.execute(
+            """
+            UPDATE matches SET status='finished', result=$2::jsonb,
+            finished_at=COALESCE(finished_at, CURRENT_TIMESTAMP), updated_at=CURRENT_TIMESTAMP
+            WHERE id=$1 AND status='playing'
+            """,
+            match_id,
+            json.dumps(state.get("result") or {}),
+        )
+        return ok(
+            {
+                "status": "finished",
+                "turn": state.get("turn"),
+                "result": state.get("result"),
+                "G": state.get("G"),
+            },
+            "ok",
+        )
+    return ok(
+        {
+            "status": state.get("status") or "playing",
+            "turn": state.get("turn"),
+            "result": state.get("result"),
+            "G": state.get("G"),
+        },
+        "ok",
+    )

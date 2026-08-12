@@ -37,6 +37,7 @@ async def ensure(user=Depends(get_current_user), body: dict | None = None):
     return ok(db.record_to_dict(row))
 
 
+@router.get("")
 @router.get("/")
 async def list_players(
     player_type: str | None = None,

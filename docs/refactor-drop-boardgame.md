@@ -1,8 +1,8 @@
 # 重构方案：抛弃 boardgame.io（方案 1）
 
-> 状态：**已实施（主路径 + Step 4 选手面）**  
-> 目标：用自研迷你对局核 + WebSocket 替代 boardgame.io，大幅简化架构。  
-> 说明：`ai-manager/` 目录仍保留在仓库中但已移出 Compose，可后续删除。
+> 状态：**已完成（并已迁移至 Python 平台 + 游戏容器）**  
+> 目标：用自研对局核 + WebSocket 替代 boardgame.io，再演进为平台 BFF + 独立游戏服务。  
+> 说明：Node `api-server` / `ai-manager` / `packages/qame-games` 已删除；现见 `platform/` 与 `games/*`。
 
 ## 1. 背景与结论
 

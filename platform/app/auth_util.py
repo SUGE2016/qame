@@ -6,10 +6,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from fastapi import Cookie, Depends, Header, HTTPException
+from fastapi import Cookie, Depends, Header, Request
+from fastapi.responses import JSONResponse
 
 from .config import settings
 from . import db
+from .resp import err
 
 
 def hash_password(password: str) -> str:
@@ -34,6 +36,12 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 
+class AuthError(Exception):
+    def __init__(self, code: int, message: str):
+        self.code = code
+        self.message = message
+
+
 async def get_current_user(
     authorization: Optional[str] = Header(default=None),
     access_token: Optional[str] = Cookie(default=None),
@@ -44,20 +52,24 @@ async def get_current_user(
     elif access_token:
         token = access_token
     if not token:
-        raise HTTPException(status_code=401, detail="请先登录")
+        raise AuthError(401, "请先登录")
     payload = decode_token(token)
     if not payload or not payload.get("userId"):
-        raise HTTPException(status_code=401, detail="令牌无效")
+        raise AuthError(401, "令牌无效")
     row = await db.fetchrow("SELECT * FROM users WHERE id=$1", payload["userId"])
     if not row:
-        raise HTTPException(status_code=401, detail="用户不存在")
+        raise AuthError(401, "用户不存在")
     return db.record_to_dict(row)
 
 
 async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="需要管理员权限")
+        raise AuthError(403, "需要管理员权限")
     return user
+
+
+async def auth_error_handler(_request: Request, exc: AuthError) -> JSONResponse:
+    return err(exc.code, exc.message)
 
 
 def new_refresh_token() -> str:

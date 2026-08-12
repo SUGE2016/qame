@@ -22,7 +22,7 @@ cd mcp && npm install
         "QAME_URL": "http://localhost:8001",
         "QAME_USERNAME": "admin",
         "QAME_PASSWORD": "admin123",
-        "QAME_PASSWORD_SALT": "<与 api-server PASSWORD_SALT 相同>"
+        "QAME_PASSWORD_SALT": "<与平台 PASSWORD_SALT 相同>"
       }
     }
   }

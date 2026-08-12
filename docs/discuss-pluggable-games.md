@@ -16,7 +16,7 @@
 | 选型理由 | 避免 Go/Rust/Java 等编译链；迭代与 Agent 生态友好 |
 | 游戏形态 | **每个游戏 = 独立后端服务 + 独立 Docker 容器**（非进程内插件包） |
 | 默认托管 | 第一批：`games/tic-tac-toe`、`games/gomoku`；协议预留第三方 Host |
-| 实施状态 | **主路径已落地**（`platform/` + `games/*` + compose）；Node api-server 仅保留废弃说明 |
+| 实施状态 | **主路径已落地**（`platform/` + `games/*` + compose）；Node `api-server` / `ai-manager` / `@qame/games` 已删除 |
 
 **目标拓扑（草案）**
 
@@ -29,7 +29,7 @@ nginx
 postgres
 ```
 
-**与现状关系**：当前 Node `api-server` + 进程内 `@qame/games` 为过渡实现；迁移时以 Python 平台 + 游戏容器替换，选手面（`/api/play`、MCP tools）对外契约尽量保持。
+**与现状关系**：选手面（`/api/play`、MCP tools）由 Python 平台提供；棋规在各游戏容器内，不再使用进程内 `@qame/games`。
 
 **仍待拍板**（见 §10）：`/api/play` 是否始终 BFF；游戏容器是否自管 WS；AI `/move` 由平台转还是游戏服务转。
 
@@ -265,4 +265,4 @@ POST {platform}/api/hooks/game-finished
 - [x] AI `/move`：**Platform 转发**（座位有 endpoint 时）  
 - [x] 框架：**FastAPI**  
 - [x] 试点：`games/tic-tac-toe` + `games/gomoku` 已落地  
-- [x] 迁移：compose 中 `api-server` 改为构建 `platform/`（Node 仅 DEPRECATED）
+- [x] 迁移：compose 中 `api-server` 构建 `platform/`；Node 后端目录已删除

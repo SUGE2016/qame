@@ -266,7 +266,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
   // 获取玩家在match中的信息
   const getPlayerInMatch = (match) => {
     if (!currentUser?.player) return null;
-    return match.players?.find(p => p.id === currentUser.player.id);
+    return match.players?.find(p => p.playerId === currentUser.player.id);
   };
 
   // 检查是否是创建者
@@ -528,7 +528,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                       {player.isAI ? '🤖' : '👤'} {player.playerName}
                       {/* 显示离开按钮：玩家自己或创建者可以移除 */}
                       {(match.status === 'waiting' && (
-                        (player.id === currentUser.player?.id) ||   // 玩家自己
+                        (player.playerId === currentUser.player?.id) ||   // 玩家自己
                         (isMatchCreator)                           // 或创建者
                       )) && (
                         <button
@@ -546,7 +546,7 @@ const NewEnhancedLobby = ({ onGameStart }) => {
                             borderRadius: '2px',
                             cursor: 'pointer'
                           }}
-                          title={player.id === currentUser.player?.id ? '离开游戏' : `移除 ${player.playerName}`}
+                          title={player.playerId === currentUser.player?.id ? '离开游戏' : `移除 ${player.playerName}`}
                         >
                           ×
                         </button>

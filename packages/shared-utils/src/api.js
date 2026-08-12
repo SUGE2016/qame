@@ -83,7 +83,7 @@ export const api = {
   getAIClients: () => apiCall('/api/ai/clients'),
   getAIPlayers: () => apiCall('/api/ai/players'),
   getActiveAIPlayers: () => apiCall('/api/ai/players/active'),
-  getActivePlayers: () => apiCall('/api/players?status=active'),
+  getActivePlayers: () => apiCall('/api/players?status=active&player_type=ai'),
   createAIClient: (clientData) => apiCall('/api/ai/clients', {
     method: 'POST',
     body: JSON.stringify(clientData)

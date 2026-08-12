@@ -6,7 +6,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import db
-from .auth_util import decode_token, hash_password
+from .auth_util import AuthError, auth_error_handler, decode_token, hash_password
 from .config import settings
 from .match_service import load_match_players, play_view, apply_seat_move
 from .routers import admin, ai, auth, games, matches, players, play, stats
@@ -20,6 +20,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_exception_handler(AuthError, auth_error_handler)
 
 app.include_router(auth.router)
 app.include_router(games.router)

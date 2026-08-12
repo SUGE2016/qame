@@ -22,11 +22,12 @@
 - 游戏容器本地：health / 建局 / 落子通过
 - 整栈 `compose up`：本机拉取 postgres 镜像受网络限制未完全跑通
 
-## 明日 / 后续
-- 管理台等价移植：`/api/admin/*`（用户/游戏 CRUD、stats）
-- AI 管理接口补全（update/delete client、players 列表过滤）
-- 网络正常后全量 compose 联调 + 提交后续修补
+## 收尾（同日续）
+- 管理台/AI/players 等价移植完成
+- `auth/refresh`、`check-game-status`；MCP 自动续期
+- 删除 Node `api-server`、`ai-manager`、`packages/qame-games`
+- `generate-ssl.sh`、compose 映射 `8001`、游戏 healthcheck
 
 ## 风险
 - Docker 基础镜像源不稳定（已尽量改为官方 `python`/`postgres`/`nginx`）
-- Access Token 默认 60m，长对局 MCP 需后续做 refresh
+- 前端 Dockerfile 仍用 `dockerpull.pw/node`（国内加速，偶发不可用）

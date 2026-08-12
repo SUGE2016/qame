@@ -1,15 +1,14 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Cookie, Depends, Response
 
 from .. import db
 from ..auth_util import (
     create_access_token,
     get_current_user,
-    hash_password,
     new_refresh_token,
 )
-from ..config import settings
 from ..resp import err, ok
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -52,6 +51,43 @@ async def login(body: dict, response: Response):
     )
 
 
+@router.post("/refresh")
+async def refresh_token(
+    response: Response,
+    body: dict | None = None,
+    refresh_token_cookie: Optional[str] = Cookie(default=None, alias="refresh_token"),
+):
+    body = body or {}
+    token = body.get("refreshToken") or refresh_token_cookie
+    if not token:
+        return err(401, "Refresh Token不存在")
+    row = await db.fetchrow(
+        "SELECT user_id FROM refresh_tokens WHERE token=$1 AND expires_at > NOW()",
+        token,
+    )
+    if not row:
+        return err(401, "Refresh Token无效")
+    user_row = await db.fetchrow("SELECT * FROM users WHERE id=$1", row["user_id"])
+    if not user_row:
+        return err(401, "用户不存在")
+    user = db.record_to_dict(user_row)
+    access = create_access_token(user)
+    response.set_cookie("access_token", access, httponly=True, samesite="strict", max_age=3600)
+    return ok(
+        {
+            "user": {
+                "id": user["id"],
+                "username": user["username"],
+                "role": user["role"],
+                "createdAt": user.get("created_at"),
+            },
+            "accessToken": access,
+            "expiresIn": "60m",
+        },
+        "Token刷新成功",
+    )
+
+
 @router.get("/verify")
 async def verify(user=Depends(get_current_user)):
     return ok({"user": {"id": user["id"], "username": user["username"], "role": user["role"]}})
@@ -63,7 +99,12 @@ async def profile(user=Depends(get_current_user)):
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    refresh_token_cookie: Optional[str] = Cookie(default=None, alias="refresh_token"),
+):
+    if refresh_token_cookie:
+        await db.execute("DELETE FROM refresh_tokens WHERE token=$1", refresh_token_cookie)
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return ok(None, "已退出")

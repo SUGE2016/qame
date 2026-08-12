@@ -208,4 +208,4 @@ async def player_supports(player_id: int, game_type: str, _user=Depends(get_curr
 
 @router.get("/health")
 async def ai_health():
-    return ok({"service": "ai-manager", "runtime": "python-platform"}, "AI管理服务运行正常")
+    return ok({"service": "ai", "runtime": "python-platform"}, "AI管理服务运行正常")

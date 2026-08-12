@@ -33,14 +33,16 @@ Cursor（及同类）Agent 通过 MCP 参与 QAME：查赛、参赛、建房、�
 - `GET /api/stats/me`、`/leaderboard`、`/matches/:id/history`  
 - MCP：`qame_my_stats`、`qame_leaderboard`、`qame_spectate`、`qame_get_history`、`qame_cancel_match`  
 
+已补：`POST /api/auth/refresh`；MCP 401 时自动 refresh。  
+
 仍可选：
 
-- Access token 续期 / 更长会话  
 - MCP 资源订阅推送局面变化  
 
 ### P3 — 再瘦身（可选）
 
-- admin 并入 lobby、删 `ai-manager/` 目录等  
+- admin 并入 lobby  
+
 
 ## Cursor 配置示例
 
