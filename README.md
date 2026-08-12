@@ -82,6 +82,8 @@ qame/
 
 更完整的服务拓扑、Nginx 路由、AI 闭环与部署要点见 [docs/architecture.md](docs/architecture.md)。
 
+计划中的轻量重构（抛弃 boardgame.io）：见 [docs/refactor-drop-boardgame.md](docs/refactor-drop-boardgame.md)。
+
 ## 🛠️ 开发指南
 
 ### 本地开发
