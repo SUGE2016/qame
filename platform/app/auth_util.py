@@ -54,6 +54,12 @@ async def get_current_user(
     return db.record_to_dict(row)
 
 
+async def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+    return user
+
+
 def new_refresh_token() -> str:
     return secrets.token_hex(64)
 

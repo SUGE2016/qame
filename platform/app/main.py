@@ -9,7 +9,7 @@ from . import db
 from .auth_util import decode_token, hash_password
 from .config import settings
 from .match_service import load_match_players, play_view, apply_seat_move
-from .routers import ai, auth, games, matches, players, play, stats
+from .routers import admin, ai, auth, games, matches, players, play, stats
 from .ws_hub import hub
 
 app = FastAPI(title="QAME Platform", version="3.0.0")
@@ -28,6 +28,7 @@ app.include_router(matches.router)
 app.include_router(play.router)
 app.include_router(stats.router)
 app.include_router(ai.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")
