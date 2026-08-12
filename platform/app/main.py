@@ -4,6 +4,7 @@ import json
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from . import db
 from .auth_util import AuthError, auth_error_handler, decode_token, hash_password
@@ -59,6 +60,46 @@ async def shutdown():
     await db.close_pool()
 
 
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    games = ", ".join(settings()["game_urls"].keys()) or "(none)"
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>QAME Platform</title>
+  <style>
+    :root {{ color-scheme: light; --bg:#f4f6f8; --ink:#1a1f24; --muted:#5b6770; --line:#d7dee5; --accent:#0b6e4f; }}
+    body {{ margin:0; font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif; background:linear-gradient(160deg,#eef3f1,#f7f4ef 50%,#e8eef5); color:var(--ink); min-height:100vh; }}
+    main {{ max-width:40rem; margin:0 auto; padding:3.5rem 1.25rem; }}
+    h1 {{ font-size:2rem; margin:0 0 .35rem; letter-spacing:.02em; }}
+    p {{ color:var(--muted); line-height:1.55; }}
+    ul {{ list-style:none; padding:0; margin:1.5rem 0; }}
+    li {{ margin:.55rem 0; }}
+    a {{ color:var(--accent); text-decoration:none; font-weight:600; border-bottom:1px solid transparent; }}
+    a:hover {{ border-bottom-color:var(--accent); }}
+    .card {{ background:rgba(255,255,255,.82); border:1px solid var(--line); border-radius:12px; padding:1.25rem 1.4rem; backdrop-filter:blur(6px); }}
+    code {{ background:#e8eef2; padding:.1rem .35rem; border-radius:4px; font-size:.92em; }}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>QAME Platform</h1>
+      <p>这是 API 服务（端口 8001），不是大厅前端。大厅请走 Nginx：<code>https://localhost/</code></p>
+      <ul>
+        <li><a href="/docs">OpenAPI 文档 (/docs)</a></li>
+        <li><a href="/redoc">ReDoc (/redoc)</a></li>
+        <li><a href="/health">健康检查 (/health)</a></li>
+      </ul>
+      <p>已配置游戏：{games}</p>
+    </div>
+  </main>
+</body>
+</html>"""
+
+
 @app.get("/health")
 @app.get("/api/health")
 async def health():
@@ -72,6 +113,7 @@ async def health():
             "ws": "/ws",
         },
     }
+
 
 
 @app.websocket("/ws")
