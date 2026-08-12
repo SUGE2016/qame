@@ -131,7 +131,6 @@ nginx/ssl/
 .vscode/launch.json
 .vscode/tasks.json
 
-generate-ssl.sh
 cookies.txt
 test-*.js
 .llm-ai-service.env
