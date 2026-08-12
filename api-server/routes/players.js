@@ -36,6 +36,35 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// 确保当前用户有人类 player（MCP/CLI 入座用）
+router.post('/me/ensure', authenticateToken, async (req, res) => {
+  try {
+    let player = await Player.getByUserId(req.user.id);
+    if (!player) {
+      const name = req.body?.player_name || req.user.username || `user-${req.user.id}`;
+      player = await Player.create({
+        player_name: name,
+        player_type: 'human',
+        user_id: req.user.id,
+        ai_player_id: null,
+        status: 'active',
+      });
+    }
+    res.json({
+      code: 200,
+      message: 'ok',
+      data: player,
+    });
+  } catch (error) {
+    console.error('ensure player 失败:', error);
+    res.status(500).json({
+      code: 500,
+      message: error.message || '服务器内部错误',
+      data: null,
+    });
+  }
+});
+
 // 获取所有玩家
 router.get('/', authenticateToken, async (req, res) => {
   try {

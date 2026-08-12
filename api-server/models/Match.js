@@ -104,18 +104,165 @@ class Match {
 
   // 更新match状态
   static async updateStatus(matchId, status) {
-    const result = await query(`
-      UPDATE matches 
+    let sql = `
+      UPDATE matches
       SET status = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
-      RETURNING *
-    `, [status, matchId]);
+    `;
+    const params = [status, matchId];
+    if (status === 'playing') {
+      sql += `, started_at = COALESCE(started_at, CURRENT_TIMESTAMP)`;
+    }
+    if (status === 'finished' || status === 'cancelled') {
+      sql += `, finished_at = COALESCE(finished_at, CURRENT_TIMESTAMP)`;
+    }
+    sql += ` WHERE id = $2 RETURNING *`;
 
+    const result = await query(sql, params);
     if (result.rows.length === 0) {
       throw new Error('Match not found');
     }
-
     return new Match(result.rows[0]);
+  }
+
+  static async finishWithResult(matchId, gameResult) {
+    const result = await query(`
+      UPDATE matches
+      SET status = 'finished',
+          result = $1::jsonb,
+          finished_at = COALESCE(finished_at, CURRENT_TIMESTAMP),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING *
+    `, [JSON.stringify(gameResult || {}), matchId]);
+    if (result.rows.length === 0) throw new Error('Match not found');
+    return new Match(result.rows[0]);
+  }
+
+  static async appendMove(matchId, ply, seatIndex, move) {
+    await query(`
+      INSERT INTO match_moves (match_id, ply, seat_index, move)
+      VALUES ($1, $2, $3, $4::jsonb)
+      ON CONFLICT (match_id, ply) DO NOTHING
+    `, [matchId, ply, seatIndex, JSON.stringify(move)]);
+  }
+
+  static async getMoves(matchId) {
+    const result = await query(`
+      SELECT ply, seat_index, move, created_at
+      FROM match_moves
+      WHERE match_id = $1
+      ORDER BY ply ASC
+    `, [matchId]);
+    return result.rows;
+  }
+
+  /** 当前用户参与过的对局统计（含今日） */
+  static async statsForUser(userId, { since } = {}) {
+    const params = [userId];
+    let sinceClause = '';
+    if (since) {
+      params.push(since);
+      sinceClause = ` AND m.finished_at >= $${params.length}`;
+    }
+
+    const result = await query(`
+      SELECT
+        m.id,
+        m.game_id,
+        m.status,
+        m.result,
+        m.finished_at,
+        m.created_at,
+        mp.seat_index
+      FROM matches m
+      JOIN match_players mp ON mp.match_id = m.id
+      JOIN players p ON p.id = mp.player_id
+      WHERE p.user_id = $1
+        AND p.player_type = 'human'
+        AND mp.status = 'joined'
+        ${sinceClause}
+      ORDER BY COALESCE(m.finished_at, m.created_at) DESC
+      LIMIT 200
+    `, params);
+
+    const rows = result.rows;
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    let playing = 0;
+    let waiting = 0;
+    let finished = 0;
+
+    for (const row of rows) {
+      if (row.status === 'playing') { playing++; continue; }
+      if (row.status === 'waiting' || row.status === 'ready') { waiting++; continue; }
+      if (row.status !== 'finished') continue;
+      finished++;
+      const r = row.result || {};
+      if (r.draw) draws++;
+      else if (r.winner !== undefined && r.winner !== null) {
+        if (String(r.winner) === String(row.seat_index)) wins++;
+        else losses++;
+      }
+    }
+
+    return {
+      totals: { wins, losses, draws, finished, playing, waiting, participated: rows.length },
+      matches: rows.map((r) => ({
+        id: r.id,
+        gameId: r.game_id,
+        status: r.status,
+        result: r.result,
+        seatIndex: r.seat_index,
+        finishedAt: r.finished_at,
+        createdAt: r.created_at,
+      })),
+    };
+  }
+
+  /** 简易排行：按已结束对局胜场 */
+  static async leaderboard({ gameId, limit = 20 } = {}) {
+    const params = [];
+    let gameClause = '';
+    if (gameId) {
+      params.push(gameId);
+      gameClause = ` AND m.game_id = $${params.length}`;
+    }
+    params.push(limit);
+
+    const result = await query(`
+      SELECT
+        p.id AS player_id,
+        p.player_name,
+        p.player_type,
+        u.username,
+        COUNT(*) FILTER (
+          WHERE m.status = 'finished'
+            AND m.result->>'winner' IS NOT NULL
+            AND m.result->>'winner' = mp.seat_index::text
+        )::int AS wins,
+        COUNT(*) FILTER (
+          WHERE m.status = 'finished' AND (m.result->>'draw')::boolean IS TRUE
+        )::int AS draws,
+        COUNT(*) FILTER (
+          WHERE m.status = 'finished'
+            AND m.result->>'winner' IS NOT NULL
+            AND m.result->>'winner' <> mp.seat_index::text
+        )::int AS losses,
+        COUNT(*) FILTER (WHERE m.status = 'finished')::int AS finished
+      FROM match_players mp
+      JOIN matches m ON m.id = mp.match_id
+      JOIN players p ON p.id = mp.player_id
+      LEFT JOIN users u ON u.id = p.user_id
+      WHERE mp.status = 'joined'
+        ${gameClause}
+      GROUP BY p.id, p.player_name, p.player_type, u.username
+      HAVING COUNT(*) FILTER (WHERE m.status = 'finished') > 0
+      ORDER BY wins DESC, draws DESC, losses ASC
+      LIMIT $${params.length}
+    `, params);
+
+    return result.rows;
   }
 
   // 删除match
@@ -147,11 +294,6 @@ class Match {
     const match = await this.findById(matchId);
     if (!match || match.status !== 'waiting') {
       return { canStart: false, reason: 'Match不存在或状态不正确' };
-    }
-
-    // 检查boardgame.io match ID是否存在
-    if (!match.bgio_match_id) {
-      return { canStart: false, reason: 'boardgame.io match ID不存在' };
     }
 
     const playerCount = await this.getPlayerCount(matchId);

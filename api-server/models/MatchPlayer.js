@@ -243,12 +243,34 @@ class MatchPlayer {
     return new MatchPlayer(result.rows[0]);
   }
 
-  // 按玩家记录ID更新凭证（用于AI或无userId的场景）
+  // 按玩家记录ID更新凭证（seatToken / 历史 credentials）
   static async updatePlayerCredentialsByPlayerId(playerId, playerCredentials) {
     const result = await query(
       'UPDATE match_players SET player_credentials = $1 WHERE id = $2 RETURNING *',
       [playerCredentials, playerId]
     );
+    return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
+  }
+
+  /** 用 seatToken 定位对局中的座位 */
+  static async findBySeatToken(matchId, seatToken) {
+    if (!seatToken) return null;
+    const result = await query(`
+      SELECT
+        mp.*,
+        p.user_id,
+        u.username as user_name,
+        p.ai_player_id,
+        ac.endpoint as client_endpoint,
+        ac.name as ai_client_name
+      FROM match_players mp
+      LEFT JOIN players p ON mp.player_id = p.id
+      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN ai_players ap ON p.ai_player_id = ap.id
+      LEFT JOIN ai_clients ac ON ap.ai_client_id = ac.id
+      WHERE mp.match_id = $1 AND mp.player_credentials = $2
+      LIMIT 1
+    `, [matchId, seatToken]);
     return result.rows.length > 0 ? new MatchPlayer(result.rows[0]) : null;
   }
 
@@ -271,6 +293,7 @@ class MatchPlayer {
       seatIndex: this.seat_index,
       playerId: this.player_id,
       playerType: this.player_type,
+      isAI: this.player_type === 'ai',
       playerName: this.player_name,
       status: this.status,
       aiClientName: this.ai_client_name,

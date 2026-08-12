@@ -93,7 +93,11 @@ router.post('/login', async (req, res) => {
           username: user.username,
           role: user.role,
           createdAt: user.created_at
-        }
+        },
+        // 供 MCP / CLI 等非 Cookie 客户端使用
+        accessToken,
+        refreshToken,
+        expiresIn: '15m'
       }
     });
 
