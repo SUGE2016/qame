@@ -170,5 +170,6 @@ def test_is_in_match_uses_player_id(admin, user_factory):
     seat = detail["data"]["players"][0]
     assert seat["playerId"] == u.player_id
     assert seat["id"] == join["data"]["id"]  # match_players.id
-    assert seat["id"] != u.player_id
+    # lobby 应用 playerId 判断是否入座，而非 match_players.id
+    assert any(p["playerId"] == u.player_id for p in detail["data"]["players"])
     u.close()

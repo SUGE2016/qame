@@ -41,3 +41,14 @@ cd mcp && npm install
 ```bash
 node cli/qame.js play <matchId> <seatToken>
 ```
+
+## 回归测试
+
+需平台已启动（默认 `http://127.0.0.1:8001`）：
+
+```bash
+./scripts/run-regression.sh
+# 或：.venv/bin/pytest tests -q
+```
+
+覆盖：棋规单测、auth/admin/AI、井字棋完整对局、五子棋开局落子、seatToken、WS join、统计/复盘。
