@@ -3,6 +3,9 @@
 > 多人在线棋类对战平台（boardgame.io），支持 Human / AI 对战。  
 > 本文档供部署、联调与 DiOS 测试对接参考。
 
+> **计划变更**：将抛弃 boardgame.io，改为自研规则核 + WebSocket（方案 1）。  
+> 实施前本文描述的是**当前**架构；目标形态与步骤见 [refactor-drop-boardgame.md](./refactor-drop-boardgame.md)。
+
 ## 1. 系统概览
 
 QAME 将「业务 API」「棋盘实时对局」「AI 接入」拆成独立服务，通过 Nginx 同源反代对外暴露。
@@ -219,3 +222,12 @@ Compose 中前端 build args 含内网示例地址 `192.168.1.156`，联调/DiOS
 - ai-manager 靠 PG NOTIFY + 启动扫描驱动，不依赖轮询游戏状态。
 - llm-ai-service 是参考实现；生产可替换任意实现同一 `/move` 的服务。
 - README 中部分本地直连端口说明与「仅暴露 Nginx」的 Compose 模式可能不一致，以 `docker-compose.yml` + `nginx/ssl.conf` 为准。
+- Redis 在 Compose 中存在，但业务代码未实际使用（health 中为占位字段）。
+
+## 12. 计划中的架构演进
+
+计划废弃 boardgame.io 双轨状态（`game-server` + credentials + ai-manager 伪装 Client），收敛为：
+
+`nginx → web + app(REST/WS/AI调度) + postgres`（可选外置 `llm-ai-service`）。
+
+详见 [refactor-drop-boardgame.md](./refactor-drop-boardgame.md)。实施完成后应重写本文第 1–7 节以匹配新拓扑。
