@@ -38,18 +38,18 @@ def _victory(cells, player):
                 rr, cc = r + dr * step, c + dc * step
                 if not (0 <= rr < BOARD and 0 <= cc < BOARD):
                     break
-                if cells[idx(rr, cc)] == player:
-                    count += 1
-                else:
+                j = idx(rr, cc)
+                if j >= len(cells) or cells[j] != player:
                     break
+                count += 1
             for step in range(1, 5):
                 rr, cc = r - dr * step, c - dc * step
                 if not (0 <= rr < BOARD and 0 <= cc < BOARD):
                     break
-                if cells[idx(rr, cc)] == player:
-                    count += 1
-                else:
+                j = idx(rr, cc)
+                if j >= len(cells) or cells[j] != player:
                     break
+                count += 1
             if count >= 5:
                 return True
     return False
