@@ -1,7 +1,6 @@
 services:
-  # Nginx反向代理 - HTTPS支持
   nginx:
-    image: dockerpull.pw/nginx:alpine
+    image: nginx:alpine
     ports:
       - "80:80"
       - "443:443"
@@ -13,15 +12,12 @@ services:
         condition: service_healthy
       api-server:
         condition: service_healthy
-      game-server:
-        condition: service_healthy
       admin-console:
         condition: service_healthy
     networks:
       - qame-network
     restart: unless-stopped
 
-  # 游戏大厅应用
   lobby:
     build:
       context: .
@@ -29,23 +25,14 @@ services:
       args:
         REACT_APP_SERVER: https://192.168.1.156
         REACT_APP_API_SERVER: https://192.168.1.156
-        REACT_APP_GAME_SERVER: https://192.168.1.156/games
         REACT_APP_PASSWORD_SALT: ${PASSWORD_SALT}
     image: localhost/hqit/qame-frontend:latest
     expose:
       - "3000"
-    environment:
-      - REACT_APP_SERVER=https://192.168.1.156
-      - REACT_APP_API_SERVER=https://192.168.1.156
-      - REACT_APP_GAME_SERVER=https://192.168.1.156/games
     networks:
       - qame-network
     depends_on:
       api-server:
-        condition: service_healthy
-      game-server:
-        condition: service_healthy
-      ai-manager:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -53,27 +40,18 @@ services:
       interval: 10s
       timeout: 5s
 
-  # 管理控制台应用
   admin-console:
     build:
       context: .
       dockerfile: admin-console/Dockerfile
       args:
         REACT_APP_API_SERVER: https://192.168.1.156
-        REACT_APP_GAME_SERVER: /games
         REACT_APP_PASSWORD_SALT: ${PASSWORD_SALT}
     image: localhost/hqit/qame-admin-console:latest
     expose:
       - "3001"
-    environment:
-      - REACT_APP_API_SERVER=https://192.168.1.156
-      - REACT_APP_GAME_SERVER=/games
-      - JWT_SECRET=${JWT_SECRET}
-      - GAME_SERVER_URL=http://game-server:8000
     depends_on:
       api-server:
-        condition: service_healthy
-      game-server:
         condition: service_healthy
     networks:
       - qame-network
@@ -83,104 +61,73 @@ services:
       interval: 10s
       timeout: 5s
 
-  # boardgame.io游戏服务器 - 专门处理游戏逻辑
-  game-server:
-    build:
-      context: .
-      dockerfile: server/Dockerfile
-    image: localhost/hqit/qame-game-server:latest
-    expose:
-      - "8000"
-    environment:
-      - NODE_ENV=development
-      - DB_HOST=postgres
-      - DB_NAME=boardgame_db
-      - DB_USER=boardgame_user
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_PORT=5432
-      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
-      - AI_SERVICE_TIMEOUT=${AI_SERVICE_TIMEOUT:-30000}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - qame-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8000/games || exit 1"]
-      interval: 10s
-      timeout: 5s
-
-  # API服务器 - 专门处理业务逻辑（认证、AI等）
+  # Python 平台（替代 Node api-server）
   api-server:
     build:
-      context: ./api-server
-      dockerfile: Dockerfile
-    image: localhost/hqit/qame-api-server:latest
+      context: .
+      dockerfile: platform/Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: localhost/hqit/qame-platform:latest
     expose:
       - "8001"
     env_file:
       - .env
     environment:
-      - NODE_ENV=development
       - PORT=8001
       - DB_HOST=postgres
       - DB_NAME=boardgame_db
       - DB_USER=boardgame_user
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_PORT=5432
-      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-4h}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
       - PASSWORD_SALT=${PASSWORD_SALT}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - AI_SERVICE_TIMEOUT=${AI_SERVICE_TIMEOUT:-30000}
+      - GAME_TTT_URL=http://game-tic-tac-toe:8101
+      - GAME_GOMOKU_URL=http://game-gomoku:8102
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      game-tic-tac-toe:
+        condition: service_started
+      game-gomoku:
+        condition: service_started
     networks:
       - qame-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8001/health || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\""]
       interval: 10s
       timeout: 5s
+      retries: 10
 
-  # AI管理服务 - AI客户端管理和监控
-  ai-manager:
+  game-tic-tac-toe:
     build:
       context: .
-      dockerfile: ai-manager/Dockerfile
-    image: localhost/hqit/qame-ai-manager:latest
+      dockerfile: games/tic-tac-toe/Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: localhost/hqit/qame-game-ttt:latest
     expose:
-      - "3002"
-    environment:
-      - NODE_ENV=development
-      - GAME_SERVER_URL=http://game-server:8000
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=boardgame_db
-      - DB_USER=boardgame_user
-      - DB_PASSWORD=${DB_PASSWORD}
-      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
-    depends_on:
-      game-server:
-        condition: service_healthy
-      api-server:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - "8101"
     networks:
       - qame-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3002/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
 
-  # LLM AI服务 - 基于LLM的AI游戏客户端示例
+  game-gomoku:
+    build:
+      context: .
+      dockerfile: games/gomoku/Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: localhost/hqit/qame-game-gomoku:latest
+    expose:
+      - "8102"
+    networks:
+      - qame-network
+    restart: unless-stopped
+
   llm-ai-service:
     build:
       context: ./llm-ai-service
@@ -195,23 +142,11 @@ services:
     networks:
       - qame-network
     restart: unless-stopped
-  
-  llm-ai-service2:
-    image: localhost/hqit/qame-llm-ai-service:latest
-    expose:
-      - "3003"
-    env_file:
-      - .llm-ai-service.env
-    environment:
-      - NODE_ENV=development
-      - LLM_MODEL=ecnu-reasoner
-    networks:
-      - qame-network
-    restart: unless-stopped
+    profiles:
+      - ai
 
-  # PostgreSQL数据库 - 生产环境使用
   postgres:
-    image: dockerpull.pw/postgres:15-alpine
+    image: postgres:15-alpine
     environment:
       - POSTGRES_DB=boardgame_db
       - POSTGRES_USER=boardgame_user
@@ -229,26 +164,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis缓存 - 会话和房间状态
-  redis:
-    image: dockerpull.pw/redis:7-alpine
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    networks:
-      - qame-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
   postgres_data:
-  redis_data:
 
 networks:
   qame-network:
-    driver: bridge 
+    driver: bridge
