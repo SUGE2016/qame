@@ -76,8 +76,11 @@ qame/
 │   ├── qame-games/           # 游戏逻辑
 │   ├── shared-ui/            # 共享UI组件
 │   └── shared-utils/         # 共享工具
+├── docs/architecture.md       # 系统架构说明（DiOS/联调参考）
 └── docker-compose.yml         # Docker配置
 ```
+
+更完整的服务拓扑、Nginx 路由、AI 闭环与部署要点见 [docs/architecture.md](docs/architecture.md)。
 
 ## 🛠️ 开发指南
 
