@@ -1,5 +1,5 @@
 {
-  "duration": 72.294,
+  "duration": 76.006,
   "scenes": [
     {
       "id": "S0",
@@ -46,9 +46,9 @@
     {
       "id": "S6",
       "start": 68.056,
-      "end": 72.294,
-      "zh": "感谢观看，欢迎联系试用。",
-      "en": "Thanks for watching — contact us to try it out."
+      "end": 76.006,
+      "zh": "感谢观看，欢迎交流共创。",
+      "en": "Thanks for watching — welcome to collaborate."
     }
   ]
 }

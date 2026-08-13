@@ -1,7 +1,8 @@
 {
   "pad_after": {
     "S3": 2.2,
-    "S4": 7.5
+    "S4": 7.5,
+    "S6": 4.0
   },
   "scenes": [
     {
@@ -36,8 +37,8 @@
     },
     {
       "id": "S6",
-      "zh": "感谢观看，欢迎联系试用。",
-      "en": "Thanks for watching — contact us to try it out."
+      "zh": "感谢观看，欢迎交流共创。",
+      "en": "Thanks for watching — welcome to collaborate."
     }
   ]
 }

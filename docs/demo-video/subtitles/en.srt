@@ -23,6 +23,6 @@ When it's your turn, you send a move. The rules live in a dedicated game service
 The platform handles accounts, rooms, and forwarding. Each game runs in its own container. Change the rules — keep the player path.
 
 7
-00:01:08,136 --> 00:01:12,174
-Thanks for watching — contact us to try it out.
+00:01:08,136 --> 00:01:15,886
+Thanks for watching — welcome to collaborate.
 

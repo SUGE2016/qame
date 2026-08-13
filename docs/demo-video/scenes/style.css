@@ -26,6 +26,11 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
 .kicker { letter-spacing: .28em; text-transform: uppercase; color: var(--gold); font-size: 18px; margin: 0 0 28px; }
 h1 { font-weight: 500; font-size: 72px; line-height: 1.15; margin: 0 0 24px; }
 .sub { color: var(--muted); font-size: 28px; margin: 0; }
+.gh { display: flex; align-items: center; gap: 28px; margin-top: 72px; color: var(--paper); }
+.gh-mark { width: 72px; height: 72px; flex: 0 0 auto; }
+.gh-meta { display: flex; flex-direction: column; gap: 8px; }
+.gh-label { font-size: 22px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
+.gh-url { font-size: 36px; letter-spacing: .02em; }
 .split, .tri, .arch { display: flex; gap: 28px; align-items: stretch; }
 .tri .panel, .split .panel { flex: 1; }
 .panel { border: 1px solid var(--line); background: rgba(18,24,15,.55); padding: 36px 40px; border-radius: 18px; }

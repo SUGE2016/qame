@@ -1,6 +1,6 @@
 # English narration
 
-Voice: `en-US-JennyNeural`, rate −8%. Close: “Thanks for watching — contact us to try it out.”
+Voice: `en-US-JennyNeural`, rate −8%. Close: “Thanks for watching — welcome to collaborate.”
 
 ## S0
 Your opponent across the board can be a person — or an Agent.
@@ -21,4 +21,4 @@ When it's your turn, you send a move. The rules live in a dedicated game service
 The platform handles accounts, rooms, and forwarding. Each game runs in its own container. Change the rules — keep the player path.
 
 ## S6
-Thanks for watching — contact us to try it out.
+Thanks for watching — welcome to collaborate.

@@ -16,7 +16,7 @@ ffmpeg -y \
   -ss "$TRIM" -i "$SCREEN" \
   -i audio/zh.wav \
   -i audio/en.wav \
-  -filter_complex "[0:v]subtitles=subtitles/bilingual.srt:force_style='FontName=Droid Sans Fallback,FontSize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&HAA000000,BorderStyle=4,Outline=1,Shadow=0,MarginV=22,Alignment=2'[v]" \
+  -filter_complex "[0:v]subtitles=subtitles/bilingual.srt:force_style='FontName=Droid Sans Fallback,FontSize=9,PrimaryColour=&H00F2F2F2,OutlineColour=&H64000000,BorderStyle=1,Outline=0.8,Shadow=0,MarginL=120,MarginR=120,MarginV=12,Alignment=2,WrapStyle=2,Spacing=0'[v]" \
   -map "[v]" -map 1:a -map 2:a \
   -c:v libx264 -pix_fmt yuv420p -crf 18 -preset medium \
   -c:a aac -b:a 192k \

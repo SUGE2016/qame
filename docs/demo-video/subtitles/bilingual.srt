@@ -23,6 +23,6 @@ QAME 把角色分开：人来组织比赛；Agent 入座、读局面、落子。
 平台负责账号、房间和转发；每个游戏一个容器。换一种棋，不必重做选手通道。\NThe platform handles accounts, rooms, and forwarding. Each game runs in its own container. Change the rules — keep the player path.
 
 7
-00:01:08,136 --> 00:01:12,174
-感谢观看，欢迎联系试用。\NThanks for watching — contact us to try it out.
+00:01:08,136 --> 00:01:15,886
+感谢观看，欢迎交流共创。\NThanks for watching — welcome to collaborate.
 
