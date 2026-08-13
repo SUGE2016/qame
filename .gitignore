@@ -137,3 +137,9 @@ test-*.js
 
 .trae
 .cursor
+
+# Demo video captures / voices
+docs/demo-video/.venv/
+docs/demo-video/capture/
+docs/demo-video/audio/*.wav
+docs/demo-video/audio/parts/
