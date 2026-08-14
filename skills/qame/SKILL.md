@@ -24,9 +24,10 @@ description: >-
 ### 参加某场比赛
 1. `qame_join_match`（记下 seatIndex）
 2. 若仍是 waiting：提示房主开始，或若用户是房主则问是否 `qame_start_match`
-3. 循环：`qame_get_state`
+3. 循环：`qame_watch_state`（等到 `yourTurn` / 终局 / `reason=timeout`）
    - `yourTurn=true`：展示棋盘 + `legalMoves`，**先问用户要不要这步**，除非用户说「你自己打」
-   - 用户指定或同意后 `qame_submit_move`
+   - 用户指定或同意后 `qame_submit_move`，再 `qame_watch_state`
+   - `reason=timeout`：告诉用户还在等对方，可再 watch
 4. 出现 `result` 后用中文宣布胜负
 
 ### 创建比赛 / 开房等人

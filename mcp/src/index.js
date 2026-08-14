@@ -3,7 +3,7 @@
  * QAME MCP Server (stdio) — Cursor / Agent 参赛与办赛工具
  * 日志只写 stderr，避免破坏 JSON-RPC。
  */
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import {
@@ -15,6 +15,7 @@ import {
   session,
   textResult,
 } from './client.js';
+import { fetchPlayState, stateUri, watchState } from './watch.js';
 
 const server = new McpServer({
   name: 'qame',
@@ -152,6 +153,10 @@ server.registerTool(
           session.seats.set(match.id, joined.seatToken);
           out.seatToken = joined.seatToken;
           out.seatIndex = joined.seatIndex;
+          out.stateUri = stateUri(match.id);
+          try {
+            await server.server.sendResourceListChanged();
+          } catch (_) {}
         }
         out.joined = true;
       }
@@ -178,13 +183,19 @@ server.registerTool(
       const body = { playerId: player.id };
       if (seatIndex !== undefined) body.seatIndex = seatIndex;
       const joined = await api('POST', `/api/matches/${matchId}/players`, { body });
-      if (joined.seatToken) session.seats.set(matchId, joined.seatToken);
+      if (joined.seatToken) {
+        session.seats.set(matchId, joined.seatToken);
+        try {
+          await server.server.sendResourceListChanged();
+        } catch (_) {}
+      }
       return textResult({
         matchId,
         seatIndex: joined.seatIndex,
         playerName: joined.playerName,
         seatToken: joined.seatToken,
-        note: '请保管 seatToken；后续 qame_get_state / qame_submit_move 将自动使用缓存',
+        stateUri: stateUri(matchId),
+        note: '请保管 seatToken；后续 qame_watch_state / qame_submit_move 将自动使用缓存',
       });
     } catch (err) {
       return errorResult(err);
@@ -214,7 +225,7 @@ server.registerTool(
 server.registerTool(
   'qame_get_state',
   {
-    description: '选手视角拉取局面：yourTurn、G、legalMoves、result。需已 join 或提供 seatToken。',
+    description: '选手视角立刻拉取局面：yourTurn、G、legalMoves、result。等对方时请用 qame_watch_state。',
     inputSchema: {
       matchId: z.string(),
       seatToken: z.string().optional().describe('省略则用本会话 join 缓存'),
@@ -222,9 +233,31 @@ server.registerTool(
   },
   async ({ matchId, seatToken }) => {
     try {
-      const token = seatToken || session.seats.get(matchId);
-      if (!token) throw new Error('无 seatToken：请先 qame_join_match 或传入 seatToken');
-      const data = await api('GET', `/api/play/${matchId}`, { seatToken: token, auth: false });
+      return textResult(await fetchPlayState(matchId, seatToken));
+    } catch (err) {
+      return errorResult(err);
+    }
+  }
+);
+
+server.registerTool(
+  'qame_watch_state',
+  {
+    description:
+      '等待局面变化后返回。默认等到 yourTurn 或终局；until=change 则等到相对首次快照有变化。超时返回 reason=timeout 与最后快照。',
+    inputSchema: {
+      matchId: z.string(),
+      seatToken: z.string().optional(),
+      timeoutMs: z.number().int().optional().describe('默认 25000'),
+      until: z.enum(['turn_or_over', 'change']).optional(),
+    },
+  },
+  async ({ matchId, seatToken, timeoutMs, until }) => {
+    try {
+      const data = await watchState(matchId, { seatToken, timeoutMs, until });
+      try {
+        await server.server.sendResourceUpdated({ uri: stateUri(matchId) });
+      } catch (_) {}
       return textResult(data);
     } catch (err) {
       return errorResult(err);
@@ -251,6 +284,9 @@ server.registerTool(
         auth: false,
         body: { move },
       });
+      try {
+        await server.server.sendResourceUpdated({ uri: stateUri(matchId) });
+      } catch (_) {}
       return textResult(data);
     } catch (err) {
       return errorResult(err);
@@ -348,6 +384,29 @@ server.registerTool(
     } catch (err) {
       return errorResult(err);
     }
+  }
+);
+
+server.registerResource(
+  'match-state',
+  new ResourceTemplate('qame://match/{matchId}/state', {
+    list: async () => ({
+      resources: [...session.seats.keys()].map((matchId) => ({
+        uri: stateUri(matchId),
+        name: `match ${matchId} state`,
+        mimeType: 'application/json',
+      })),
+    }),
+  }),
+  {
+    description: '已入座对局的选手视角局面。变化后可再 read；等轮到自己请用 qame_watch_state。',
+    mimeType: 'application/json',
+  },
+  async (uri, { matchId }) => {
+    const data = await fetchPlayState(matchId);
+    return {
+      contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(data, null, 2) }],
+    };
   }
 );
 

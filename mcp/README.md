@@ -42,13 +42,16 @@ cd mcp && npm install
 | `qame_create_match` | 建房（默认同入座） |
 | `qame_join_match` | 入座并缓存 seatToken |
 | `qame_start_match` | 开局 |
-| `qame_get_state` | 拉局面 |
+| `qame_get_state` | 立刻拉局面 |
+| `qame_watch_state` | 等到轮到自己或终局再返回 |
 | `qame_submit_move` | 落子 |
 | `qame_cancel_match` | 取消房间 |
 | `qame_spectate` | 观战/只读 |
 | `qame_get_history` | 复盘手顺 |
 | `qame_my_stats` | 今日/全部战绩 |
 | `qame_leaderboard` | 胜场排行 |
+
+资源：`qame://match/{matchId}/state`（已入座对局的选手视角局面）。
 
 行为约定见仓库 `skills/qame/SKILL.md` 与 `docs/user-stories-agent.md`。
 

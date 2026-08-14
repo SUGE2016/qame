@@ -25,7 +25,7 @@ Cursor（及同类）Agent 通过 MCP 参与 QAME：查赛、参赛、建房、�
 - `qame_get_state` — 选手视角局面  
 - `qame_submit_move` — 交一手  
 
-### P2 — 统计与体验（进行中）
+### P2 — 统计与体验
 
 已落地：
 
@@ -35,9 +35,7 @@ Cursor（及同类）Agent 通过 MCP 参与 QAME：查赛、参赛、建房、�
 
 已补：`POST /api/auth/refresh`；MCP 401 时自动 refresh。  
 
-仍可选：
-
-- MCP 资源订阅推送局面变化  
+已补：`qame_watch_state`（等到 yourTurn/终局）；资源 `qame://match/{id}/state`。  
 
 ### P3 — 再瘦身（可选）
 

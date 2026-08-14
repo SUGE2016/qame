@@ -58,7 +58,7 @@ Agent：`qame_login` 或环境变量预置账号 → 后续工具带身份。
 | US-1 | `qame_list_games`, `qame_list_matches`, `qame_get_match` |
 | US-3 | `qame_spectate` |
 | US-4/5 | `qame_create_match`, `qame_join_match`, `qame_start_match`, `qame_cancel_match` |
-| US-2/7 | `qame_get_state`, `qame_submit_move` |
+| US-2/7 | `qame_watch_state`, `qame_get_state`, `qame_submit_move` |
 | US-8 | `qame_my_stats` |
 | US-9 | `qame_leaderboard` |
 | US-10 | `qame_get_history` |
