@@ -23,12 +23,21 @@ services:
       context: .
       dockerfile: lobby/Dockerfile
       args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        NO_PROXY: "*"
+        no_proxy: "*"
         REACT_APP_SERVER: ${PUBLIC_URL:-}
         REACT_APP_API_SERVER: ${PUBLIC_URL:-}
         REACT_APP_PASSWORD_SALT: ${PASSWORD_SALT}
     image: localhost/hqit/qame-frontend:latest
     expose:
       - "3000"
+    environment:
+      - NO_PROXY=localhost,127.0.0.1
+      - no_proxy=localhost,127.0.0.1
     networks:
       - qame-network
     depends_on:
@@ -36,7 +45,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -46,11 +55,20 @@ services:
       context: .
       dockerfile: admin-console/Dockerfile
       args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        NO_PROXY: "*"
+        no_proxy: "*"
         REACT_APP_API_SERVER: ${PUBLIC_URL:-}
         REACT_APP_PASSWORD_SALT: ${PASSWORD_SALT}
     image: localhost/hqit/qame-admin-console:latest
     expose:
       - "3001"
+    environment:
+      - NO_PROXY=localhost,127.0.0.1
+      - no_proxy=localhost,127.0.0.1
     depends_on:
       api-server:
         condition: service_healthy
@@ -58,7 +76,7 @@ services:
       - qame-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3001 || exit 1"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3001',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 10

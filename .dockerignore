@@ -1,0 +1,13 @@
+.git
+.venv
+**/node_modules
+**/__pycache__
+**/.venv
+docs/demo-video/capture
+docs/demo-video/.venv
+nginx/ssl
+*.mp4
+*.webm
+.env
+.env.test
+mcp/node_modules
