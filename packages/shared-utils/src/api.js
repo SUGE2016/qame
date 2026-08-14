@@ -14,12 +14,19 @@ function handleSessionExpired() {
 
 // 统一的API调用函数（同源相对路径）
 export const apiCall = async (url, options = {}) => {
-  const defaultOptions = {
-    credentials: 'include', // 自动发送Cookie
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  try {
+    const token = sessionStorage.getItem('accessToken');
+    if (token && !headers.Authorization) {
+      headers.Authorization = `Bearer ${token}`;
     }
+  } catch (_) {}
+  const defaultOptions = {
+    credentials: 'include',
+    headers
   };
 
   // 使用同源相对路径，交由Nginx反向代理

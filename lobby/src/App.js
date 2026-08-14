@@ -99,6 +99,7 @@ function App() {
     }
     
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem('accessToken');
     sessionStorage.removeItem('currentView');
     sessionStorage.removeItem('gameState');
     setUser(null);

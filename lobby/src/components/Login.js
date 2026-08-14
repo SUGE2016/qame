@@ -33,8 +33,10 @@ const Login = ({ onLogin }) => {
       const data = await response.json();
 
       if (data.code === 200) {
-        // 保存用户信息到Session Storage（页面级缓存）
         sessionStorage.setItem('user', JSON.stringify(data.data.user));
+        if (data.data.accessToken) {
+          sessionStorage.setItem('accessToken', data.data.accessToken);
+        }
         onLogin(data.data.user);
       } else {
         setError(data.message || '登录失败');

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, Response
+from fastapi import APIRouter, Cookie, Depends
+from fastapi.responses import JSONResponse
 
 from .. import db
 from ..auth_util import (
@@ -14,8 +15,29 @@ from ..resp import err, ok
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _set_auth_cookies(resp: JSONResponse, access: str, refresh: str | None = None):
+    # 必须写在返回的 JSONResponse 上；写在注入的 Response 上会被丢掉
+    resp.set_cookie(
+        "access_token",
+        access,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=3600,
+    )
+    if refresh is not None:
+        resp.set_cookie(
+            "refresh_token",
+            refresh,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=7 * 86400,
+        )
+
+
 @router.post("/login")
-async def login(body: dict, response: Response):
+async def login(body: dict):
     username = body.get("username")
     hashed = body.get("hashedPassword")
     if not username or not hashed:
@@ -33,9 +55,7 @@ async def login(body: dict, response: Response):
         refresh,
         exp.replace(tzinfo=None),
     )
-    response.set_cookie("access_token", access, httponly=True, samesite="strict", max_age=3600)
-    response.set_cookie("refresh_token", refresh, httponly=True, samesite="strict", max_age=7 * 86400)
-    return ok(
+    resp = ok(
         {
             "user": {
                 "id": user["id"],
@@ -49,11 +69,12 @@ async def login(body: dict, response: Response):
         },
         "登录成功",
     )
+    _set_auth_cookies(resp, access, refresh)
+    return resp
 
 
 @router.post("/refresh")
 async def refresh_token(
-    response: Response,
     body: dict | None = None,
     refresh_token_cookie: Optional[str] = Cookie(default=None, alias="refresh_token"),
 ):
@@ -72,8 +93,7 @@ async def refresh_token(
         return err(401, "用户不存在")
     user = db.record_to_dict(user_row)
     access = create_access_token(user)
-    response.set_cookie("access_token", access, httponly=True, samesite="strict", max_age=3600)
-    return ok(
+    resp = ok(
         {
             "user": {
                 "id": user["id"],
@@ -86,6 +106,8 @@ async def refresh_token(
         },
         "Token刷新成功",
     )
+    _set_auth_cookies(resp, access)
+    return resp
 
 
 @router.get("/verify")
@@ -100,11 +122,11 @@ async def profile(user=Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout(
-    response: Response,
     refresh_token_cookie: Optional[str] = Cookie(default=None, alias="refresh_token"),
 ):
     if refresh_token_cookie:
         await db.execute("DELETE FROM refresh_tokens WHERE token=$1", refresh_token_cookie)
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
-    return ok(None, "已退出")
+    resp = ok(None, "已退出")
+    resp.delete_cookie("access_token", path="/")
+    resp.delete_cookie("refresh_token", path="/")
+    return resp
