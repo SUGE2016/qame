@@ -90,7 +90,7 @@ def apply_move(G, player_id, move):
     opp = "ships1" if str(player_id) == "0" else "ships0"
     hit = cell in _ship_cells(G.get(opp))
     shots[str(cell)] = "hit" if hit else "miss"
-    return {"G": {**G, key: shots}}
+    return {"G": {**G, key: shots}, "extraTurn": hit}
 
 
 def _sunk(ships, shots) -> bool:

@@ -44,12 +44,14 @@ def test_fire_hit_miss_and_block():
     g = rules.create_state({"matchId": "shot"})
     target = g["ships1"][0][0]
     empty = next(i for i in range(100) if i not in _cells(g["ships1"]))
-    hit = rules.apply_move(g, "0", target)["G"]
-    assert hit["shots1"][str(target)] == "hit"
-    miss = rules.apply_move(hit, "0", empty)["G"]
-    assert miss["shots1"][str(empty)] == "miss"
-    assert rules.apply_move(miss, "0", target).get("error")
-    assert target not in rules.legal_moves(miss, "0")
+    hit = rules.apply_move(g, "0", target)
+    assert hit.get("extraTurn") is True
+    assert hit["G"]["shots1"][str(target)] == "hit"
+    miss = rules.apply_move(hit["G"], "0", empty)
+    assert miss.get("extraTurn") is False
+    assert miss["G"]["shots1"][str(empty)] == "miss"
+    assert rules.apply_move(miss["G"], "0", target).get("error")
+    assert target not in rules.legal_moves(miss["G"], "0")
 
 
 def test_sink_all_wins():

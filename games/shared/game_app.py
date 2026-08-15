@@ -140,7 +140,7 @@ def build_game_app(
         if end:
             room["result"] = end
             room["status"] = "finished"
-        else:
+        elif not out.get("extraTurn"):
             room["turn"] = "1" if seat == "0" else "0"
         pub = _public(room)
         pub["legalMoves"] = (
