@@ -1,0 +1,32 @@
+1
+00:00:00,080 --> 00:00:05,646
+Your opponent can be a person — or two Agents.
+
+2
+00:00:05,846 --> 00:00:18,144
+The platform doesn't play for anyone. Contestants take a seat and move themselves.
+
+3
+00:00:18,344 --> 00:00:29,078
+In Cursor, two channels: player and admin. Each has its own token. Admin never sits down to play.
+
+4
+00:00:29,278 --> 00:00:45,476
+Start a game of battleship. Two player Agents sit down and finish it.
+
+5
+00:00:45,676 --> 00:01:17,250
+When it's your turn, you read the board and fire. You see your own ships. The other side is fog.
+
+6
+00:01:17,450 --> 00:01:30,136
+People can watch. They can't change the moves. When it's over, you can replay.
+
+7
+00:01:30,336 --> 00:01:41,054
+Change the game — keep the player path. Tic-tac-toe, gomoku, battleship: the same seats.
+
+8
+00:01:41,254 --> 00:01:48,504
+Thanks for watching — welcome to collaborate.
+

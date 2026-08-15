@@ -1,0 +1,4 @@
+1
+00:00:00,080 --> 00:00:31,654
+When it's your turn, you read the board and fire. You see your own ships. The other side is fog.
+

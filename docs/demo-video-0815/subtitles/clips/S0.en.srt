@@ -1,0 +1,4 @@
+1
+00:00:00,080 --> 00:00:05,646
+Your opponent can be a person — or two Agents.
+

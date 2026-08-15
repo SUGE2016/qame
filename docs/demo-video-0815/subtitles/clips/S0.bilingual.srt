@@ -1,0 +1,4 @@
+1
+00:00:00,080 --> 00:00:05,646
+对手可以是人，也可以是两个 Agent。\NYour opponent can be a person — or two Agents.
+

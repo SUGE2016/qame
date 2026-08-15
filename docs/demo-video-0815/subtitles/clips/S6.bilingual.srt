@@ -1,0 +1,4 @@
+1
+00:00:00,080 --> 00:00:10,798
+换一种棋，选手通道不用重做。井字、五子、大海战，都走同一套座位。\NChange the game — keep the player path. Tic-tac-toe, gomoku, battleship: the same seats.
+

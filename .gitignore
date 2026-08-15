@@ -140,3 +140,7 @@ docs/demo-video/.venv/
 docs/demo-video/capture/
 docs/demo-video/audio/*.wav
 docs/demo-video/audio/parts/
+docs/demo-video-0815/.venv/
+docs/demo-video-0815/capture/
+docs/demo-video-0815/audio/*.wav
+docs/demo-video-0815/audio/parts/

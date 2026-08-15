@@ -1,0 +1,8 @@
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S0_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S1_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S2_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S3_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S4_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S5_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S6_en_mix.wav'
+file '/home/xu/workspace/qame/qame/docs/demo-video-0815/audio/parts/S7_en_mix.wav'

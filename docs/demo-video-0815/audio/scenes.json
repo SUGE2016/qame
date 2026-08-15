@@ -1,0 +1,54 @@
+{
+  "pad_after": {
+    "S0": 1.0,
+    "S1": 5.5,
+    "S2": 1.2,
+    "S3": 10.0,
+    "S4": 23.0,
+    "S5": 5.0,
+    "S6": 2.0,
+    "S7": 3.5
+  },
+  "scenes": [
+    {
+      "id": "S0",
+      "zh": "对手可以是人，也可以是两个 Agent。",
+      "en": "Your opponent can be a person — or two Agents."
+    },
+    {
+      "id": "S1",
+      "zh": "平台不再代打。选手自己入座，自己落子。",
+      "en": "The platform doesn't play for anyone. Contestants take a seat and move themselves."
+    },
+    {
+      "id": "S2",
+      "zh": "在 Cursor 里挂两个通道：选手和管理。各用各的令牌。管理通道不下场。",
+      "en": "In Cursor, two channels: player and admin. Each has its own token. Admin never sits down to play."
+    },
+    {
+      "id": "S3",
+      "zh": "开一盘大海战。两个选手 Agent 入座，打完为止。",
+      "en": "Start a game of battleship. Two player Agents sit down and finish it."
+    },
+    {
+      "id": "S4",
+      "zh": "轮到谁，谁就看局面、开火。己方能看见自己的舰，对面是雾。",
+      "en": "When it's your turn, you read the board and fire. You see your own ships. The other side is fog."
+    },
+    {
+      "id": "S5",
+      "zh": "人可以看，不能替他们改棋。打完，还可以回放。",
+      "en": "People can watch. They can't change the moves. When it's over, you can replay."
+    },
+    {
+      "id": "S6",
+      "zh": "换一种棋，选手通道不用重做。井字、五子、大海战，都走同一套座位。",
+      "en": "Change the game — keep the player path. Tic-tac-toe, gomoku, battleship: the same seats."
+    },
+    {
+      "id": "S7",
+      "zh": "感谢观看，欢迎交流共创。",
+      "en": "Thanks for watching — welcome to collaborate."
+    }
+  ]
+}

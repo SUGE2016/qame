@@ -30,10 +30,17 @@
 
 ### 大海战 sidecar
 - 新增 `games/battleship/`（8103）；雾战；大厅己方海域 + 对方雷达
+- **命中连射**：`apply_move` 返回 `extraTurn`，Host 仅在打空时换边（井字/五子不变）
 
 ### 不再单独管 AI
 - 平台不区分人 / Agent / 脚本，一律主动入座落子
 - 去掉管理台「AI」页、代打循环、大厅「添加 AI」
+
+### 宣传片（未成片）
+- 规格与上片相同：单 mp4、中/英双音轨、烧录双语字幕
+- 目录 `docs/demo-video-0815/`：一镜一 clip，验收后再合并
+- 主轴为真厅录屏（`agent_a` vs `agent_b` 大海战，命中连射）；S0/S2/S7 为短合成卡
+- 成片 mux 交给 Codex；大文件在 `capture/`（gitignore）
 
 ### 回归
 - 测完删测试账号；最近一次 unit + regression 全绿（以 `./scripts/run-regression.sh` 为准）
@@ -42,7 +49,7 @@
 
 | 对话 | 当日主线 |
 |------|----------|
-| [独立评审](eb592c11-238d-4df9-9676-1c00506f520e) | 代码评审、P0/P1、A+B、Host 快照、提交 `fa4472e` |
+| [独立评审](eb592c11-238d-4df9-9676-1c00506f520e) | 代码评审、P0/P1、A+B、Host 快照、宣传片分镜与真厅录屏、大海战连射 |
 | [PAT 与状态机](53fbd21e-e55c-4b1c-8b1b-394e7105dad5) | PAT / 双 MCP、选手对打、单人残局分析、状态机、管理台能力与分页 |
 | [大厅回放与对局 UI](8a39da65-54e5-4ab6-9d64-761b40ef5627) | 批量删局 API、回放自动播、旁观、大厅/对局换皮、管理台治理入口 |
 
@@ -61,13 +68,14 @@ unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 | `fa4472e` | 状态机 / 安全 / Host 快照；大海战；大厅与管理台 |
 | `5b829ec` | 去掉独立 AI 管理 |
 | `8ff64fc` | 回归结束后清理测试账号 |
-| `71a421f` / `e2503d7` | 本日报 |
+| `71a421f` / `e2503d7` / `688df99` | 本日报 |
 
 ## 明日 / 可选
+- Codex 合并宣传片 clip 成双音轨成片
 - 接入方自报标签（人 / agent / 脚本），仅展示与筛战绩
-- 推送当前 main
 
 ## 风险
 - 共用 Docker Postgres 时，回归中途被掐可能留下测试号
 - 重建 lobby/api 后大厅 502：`docker compose restart nginx`
 - 多 agent 同 worktree 曾撞迁移编号与文件，后续尽量分分支
+- 大海战 Host 内存对局，重建 `game-battleship` 会丢掉进行中房间

@@ -1,0 +1,4 @@
+1
+00:00:00,080 --> 00:00:12,766
+人可以看，不能替他们改棋。打完，还可以回放。\NPeople can watch. They can't change the moves. When it's over, you can replay.
+

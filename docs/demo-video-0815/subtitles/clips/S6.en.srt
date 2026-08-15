@@ -1,0 +1,4 @@
+1
+00:00:00,080 --> 00:00:10,798
+Change the game — keep the player path. Tic-tac-toe, gomoku, battleship: the same seats.
+
