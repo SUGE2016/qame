@@ -79,30 +79,6 @@ class UpdateGameBody(CamelModel):
     host_url: str | None = Field(default=None, alias="hostUrl")
 
 
-class CreateAIClientBody(CamelModel):
-    name: str
-    endpoint: str
-    supported_games: list[str]
-    description: str = ""
-
-
-class UpdateAIClientBody(CamelModel):
-    name: str | None = None
-    endpoint: str | None = None
-    supported_games: list[str] | None = None
-    description: str | None = None
-
-
-class CreateAIPlayerBody(CamelModel):
-    player_name: str
-    ai_client_id: str
-
-
-class UpdateAIPlayerBody(CamelModel):
-    player_name: str | None = None
-    status: str | None = None
-
-
 class PatchPlayerStatusBody(CamelModel):
     status: str
 

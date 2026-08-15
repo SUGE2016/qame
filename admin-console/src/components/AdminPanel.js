@@ -3,19 +3,17 @@ import Overview from './admin/Overview';
 import AuditLog from './admin/AuditLog';
 import UserManagement from './admin/UserManagement';
 import GameManagement from './admin/GameManagement';
-import AIConfigManagement from './admin/AIConfigManagement';
 import GameDatabaseManagement from './admin/GameDatabaseManagement';
 
 const TABS = [
   ['overview', '总览'],
   ['users', '用户'],
   ['games', '游戏'],
-  ['ai-configs', 'AI'],
   ['game-db', '对局'],
   ['audit', '审计'],
 ];
 
-const TABS_GONE = new Set(['ai-clients']);
+const TABS_GONE = new Set(['ai-configs', 'ai-clients']);
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState(() => {
@@ -52,7 +50,6 @@ const AdminPanel = () => {
         {activeTab === 'overview' && <Overview />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'games' && <GameManagement />}
-        {activeTab === 'ai-configs' && <AIConfigManagement />}
         {activeTab === 'game-db' && <GameDatabaseManagement />}
         {activeTab === 'audit' && <AuditLog />}
       </main>

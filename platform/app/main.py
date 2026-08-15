@@ -18,7 +18,7 @@ from .match_service import (
     reconcile_open_matches,
     restore_playing_matches,
 )
-from .routers import admin, ai, auth, games, matches, players, play, stats
+from .routers import admin, auth, games, matches, players, play, stats
 from .ws_hub import hub
 
 log = logging.getLogger("qame")
@@ -98,7 +98,6 @@ app.include_router(players.router)
 app.include_router(matches.router)
 app.include_router(play.router)
 app.include_router(stats.router)
-app.include_router(ai.router)
 app.include_router(admin.router)
 
 

@@ -99,24 +99,6 @@ export const api = {
     });
     return apiCall(`/api/admin/audit?${params}`);
   },
-  getAIClients: () => apiCall('/api/ai/clients'),
-  getAIPlayers: () => apiCall('/api/ai/players'),
-  getActiveAIPlayers: () => apiCall('/api/ai/players/active'),
-  getActivePlayers: () => apiCall('/api/players?status=active&player_type=ai'),
-  createAIClient: (clientData) => apiCall('/api/ai/clients', {
-    method: 'POST',
-    body: JSON.stringify(clientData)
-  }),
-  createAIPlayer: (playerData) => apiCall('/api/ai/players', {
-    method: 'POST',
-    body: JSON.stringify(playerData)
-  }),
-  updateAIClient: (clientId, clientData) => apiCall(`/api/ai/clients/${clientId}`, {
-    method: 'PUT',
-    body: JSON.stringify(clientData)
-  }),
-  deleteAIClient: (clientId) => apiCall(`/api/ai/clients/${clientId}`, { method: 'DELETE' }),
-  deleteAIPlayer: (playerId) => apiCall(`/api/ai/players/${playerId}`, { method: 'DELETE' }),
   createGame: (gameData) => apiCall('/api/admin/games', {
     method: 'POST',
     body: JSON.stringify(gameData)

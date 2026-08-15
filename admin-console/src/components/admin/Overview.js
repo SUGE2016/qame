@@ -37,7 +37,7 @@ const Overview = () => {
     ['对局', stats.total_matches, `进行中 ${stats.playing_matches ?? 0}`],
     ['等待', stats.waiting_matches, `已结束 ${stats.finished_matches ?? 0}`],
     ['已取消', stats.cancelled_matches, `人数不足 ${undermanned}`],
-    ['玩家', stats.total_players ?? stats.human_players, ''],
+    ['玩家', stats.total_players, '注册玩家'],
   ];
 
   return (

@@ -21,9 +21,7 @@ def _display_player(p: dict) -> dict:
         "playerId": p["playerId"],
         "playerType": p["playerType"],
         "playerName": p["playerName"],
-        "clientEndpoint": p.get("clientEndpoint"),
         "userId": p.get("userId"),
-        "isAI": p.get("isAI"),
     }
 
 

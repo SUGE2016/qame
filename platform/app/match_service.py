@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any, Optional
 
@@ -47,12 +46,10 @@ async def load_match_players(match_id: str) -> list[dict]:
     rows = await db.fetch(
         """
         SELECT mp.*, p.user_id, p.player_type, p.player_name AS p_name,
-               ac.endpoint AS client_endpoint, u.username AS user_name
+               u.username AS user_name
         FROM match_players mp
         LEFT JOIN players p ON p.id = mp.player_id
         LEFT JOIN users u ON u.id = p.user_id
-        LEFT JOIN ai_players ap ON ap.id = p.ai_player_id
-        LEFT JOIN ai_clients ac ON ac.id = ap.ai_client_id
         WHERE mp.match_id=$1 AND mp.status='joined'
         ORDER BY mp.seat_index
         """,
@@ -71,8 +68,6 @@ async def load_match_players(match_id: str) -> list[dict]:
                 "playerType": ptype,
                 "playerName": pname,
                 "userId": d.get("user_id"),
-                "clientEndpoint": d.get("client_endpoint"),
-                "isAI": ptype == "ai",
             }
         )
     return out
@@ -187,7 +182,6 @@ async def start_match(match_id: str) -> dict:
     await _save_snapshot(match_id, m["game_id"])
     msg = {**state, "type": "state", "players": players}
     await hub.broadcast(match_id, msg)
-    asyncio.create_task(maybe_ai_turn(match_id))
     return state
 
 
@@ -227,45 +221,8 @@ async def apply_seat_move(match_id: str, seat_index: int, move: Any) -> dict:
     else:
         players = await load_match_players(match_id)
         await hub.broadcast(match_id, {**state, "type": "state", "players": players})
-        asyncio.create_task(maybe_ai_turn(match_id))
     await _save_snapshot(match_id, m["game_id"])
     return state
-
-
-async def maybe_ai_turn(match_id: str):
-    try:
-        m = await db.fetchrow("SELECT * FROM matches WHERE id=$1", match_id)
-        if not m:
-            return
-        m = db.record_to_dict(m)
-        if m["status"] != "playing":
-            return
-        state = await game_client.get_host_state(m["game_id"], match_id)
-        if state.get("result") or state.get("status") != "playing":
-            return
-        turn = str(state.get("turn"))
-        state = await game_client.get_host_state(m["game_id"], match_id, seat=turn)
-        players = await load_match_players(match_id)
-        current = next((p for p in players if str(p["seatIndex"]) == turn), None)
-        if not current or current["playerType"] != "ai":
-            return
-        endpoint = current.get("clientEndpoint")
-        if not endpoint:
-            return
-        move = await game_client.call_ai_move(
-            endpoint,
-            {
-                "game_id": m["game_id"],
-                "match_id": match_id,
-                "player_id": turn,
-                "G": state.get("G"),
-                "ctx": {"currentPlayer": turn},
-                "metadata": {"turn": turn},
-            },
-        )
-        await apply_seat_move(match_id, int(turn), move)
-    except Exception as e:
-        await hub.broadcast(match_id, {"type": "error", "matchId": match_id, "message": f"AI 行动失败: {e}"})
 
 
 async def play_view(match_id: str, seat_index: Optional[int]) -> dict:

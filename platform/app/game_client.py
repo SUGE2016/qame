@@ -99,17 +99,3 @@ async def host_move(game_id: str, match_id: str, seat: str, move: Any) -> dict:
 async def delete_host_match(game_id: str, match_id: str) -> None:
     async with httpx.AsyncClient(timeout=10.0) as client:
         await client.delete(f"{await game_base(game_id)}/v1/matches/{match_id}", headers=_headers())
-
-
-async def call_ai_move(endpoint: str, payload: dict) -> Any:
-    url = endpoint.rstrip("/") + "/move"
-    timeout = settings()["ai_timeout_ms"] / 1000.0
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.post(url, json=payload)
-        if r.status_code >= 400:
-            raise GameClientError(f"AI HTTP {r.status_code}: {r.text}", r.status_code)
-        data = r.json()
-        move = data.get("move")
-        if move is None or move == -1:
-            raise GameClientError("AI 返回无效 move")
-        return move
