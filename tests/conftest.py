@@ -1,7 +1,9 @@
 import hashlib
 import os
+import re
 import time
 import uuid
+import warnings
 
 import httpx
 import pytest
@@ -14,6 +16,41 @@ ADMIN_PASS = os.getenv("QAME_ADMIN_PASSWORD", "admin123")
 
 def hash_password(password: str) -> str:
     return hashlib.sha256((password + SALT).encode("utf-8")).hexdigest()
+
+
+# user_factory / 回归自建账号：前缀_8位hex，例如 sea_a_a1b2c3d4
+TEST_USERNAME_RE = re.compile(r"^[A-Za-z0-9_]+_[0-9a-f]{8}$")
+
+
+def is_test_username(name: str | None) -> bool:
+    return bool(name) and name != ADMIN_USER and bool(TEST_USERNAME_RE.match(name))
+
+
+def list_all_users(api: "Api") -> list[dict]:
+    out: list[dict] = []
+    page = 1
+    while True:
+        body = api.req("GET", f"/api/admin/users?page={page}&limit=100&order=desc")
+        batch = body["data"]["users"]
+        out.extend(batch)
+        total = body["data"].get("total") or 0
+        if not batch or page * 100 >= total:
+            break
+        page += 1
+    return out
+
+
+def sweep_test_users(api: "Api") -> int:
+    deleted = 0
+    for u in list_all_users(api):
+        if not is_test_username(u.get("username")):
+            continue
+        try:
+            api.req("DELETE", f"/api/admin/users/{u['id']}", expect=200)
+            deleted += 1
+        except Exception as e:
+            warnings.warn(f"未能删除测试用户 {u.get('username')}: {e}")
+    return deleted
 
 
 class Api:
@@ -97,6 +134,19 @@ def admin(alive):
     api.close()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _sweep_test_users_after_session(alive):
+    yield
+    api = Api()
+    try:
+        api.login(ADMIN_USER, ADMIN_PASS)
+        n = sweep_test_users(api)
+        if n:
+            print(f"\n[cleanup] removed {n} test users")
+    finally:
+        api.close()
+
+
 @pytest.fixture
 def user_factory(admin):
     created_ids: list[int] = []
@@ -127,5 +177,5 @@ def user_factory(admin):
     for uid in created_ids:
         try:
             admin.req("DELETE", f"/api/admin/users/{uid}", expect=200)
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"user_factory 未能删除用户 {uid}: {e}")
