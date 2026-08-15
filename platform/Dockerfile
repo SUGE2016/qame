@@ -1,11 +1,21 @@
 FROM python:3.12-slim
 
 ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG http_proxy=
+ARG https_proxy=
 ENV PIP_INDEX_URL=${PIP_INDEX_URL} \
     PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
     PIP_DEFAULT_TIMEOUT=120 \
     PIP_RETRIES=5 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    HTTP_PROXY= \
+    HTTPS_PROXY= \
+    http_proxy= \
+    https_proxy= \
+    NO_PROXY=* \
+    no_proxy=*
 
 WORKDIR /app
 

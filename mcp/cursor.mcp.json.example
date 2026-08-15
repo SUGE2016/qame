@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "qame": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp/src/index.js"],
+      "env": {
+        "QAME_URL": "http://127.0.0.1:8001",
+        "QAME_TOKEN": "${env:QAME_PLAYER_TOKEN}"
+      }
+    },
+    "qame-admin": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp/src/index.js"],
+      "env": {
+        "QAME_URL": "http://127.0.0.1:8001",
+        "QAME_TOKEN": "${env:QAME_ADMIN_TOKEN}"
+      }
+    }
+  }
+}

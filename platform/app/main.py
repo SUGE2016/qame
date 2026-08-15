@@ -1,27 +1,96 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from . import db
-from .auth_util import AuthError, auth_error_handler, decode_token, hash_password
-from .config import settings
-from .match_service import load_match_players, play_view, apply_seat_move
+from .auth_util import AuthError, auth_error_handler, hash_password, user_from_access_token
+from .config import assert_production_secrets, cors_origins, settings
+from .match_service import (
+    apply_seat_move,
+    play_view,
+    reconcile_open_matches,
+    restore_playing_matches,
+)
 from .routers import admin, ai, auth, games, matches, players, play, stats
 from .ws_hub import hub
 
-app = FastAPI(title="QAME Platform", version="3.0.0")
+log = logging.getLogger("qame")
+
+
+async def _seed():
+    await db.execute(
+        """
+        INSERT INTO games (id, name, description, min_players, max_players, status)
+        VALUES ('tic-tac-toe','井字棋','经典井字棋',2,2,'active'),
+               ('gomoku','五子棋','9x9五子棋',2,2,'active'),
+               ('battleship','大海战','10x10舰队对射',2,2,'active')
+        ON CONFLICT (id) DO NOTHING
+        """
+    )
+    for gid, url in settings()["game_urls"].items():
+        await db.execute(
+            "UPDATE games SET host_url=COALESCE(NULLIF(host_url,''), $2) WHERE id=$1",
+            gid,
+            url,
+        )
+    admin_row = await db.fetchrow("SELECT * FROM users WHERE username='admin'")
+    if not admin_row:
+        pwd = hash_password(settings()["admin_password"])
+        await db.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES ('admin',$1,'admin')",
+            pwd,
+        )
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    assert_production_secrets()
+    await db.init_pool()
+    await db.run_migrations()
+    await _seed()
+    await reconcile_open_matches()
+    await restore_playing_matches()
+    yield
+    await db.close_pool()
+
+
+app = FastAPI(title="QAME Platform", version="3.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.add_exception_handler(AuthError, auth_error_handler)
+
+
+@app.middleware("http")
+async def request_log(request: Request, call_next):
+    t0 = time.perf_counter()
+    resp = await call_next(request)
+    if request.url.path not in ("/health", "/api/health"):
+        log.info(
+            json.dumps(
+                {
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": resp.status_code,
+                    "ms": round((time.perf_counter() - t0) * 1000, 1),
+                },
+                ensure_ascii=False,
+            )
+        )
+    return resp
+
 
 app.include_router(auth.router)
 app.include_router(games.router)
@@ -31,33 +100,6 @@ app.include_router(play.router)
 app.include_router(stats.router)
 app.include_router(ai.router)
 app.include_router(admin.router)
-
-
-@app.on_event("startup")
-async def startup():
-    await db.init_pool()
-    await db.run_migrations()
-    # seed games
-    await db.execute(
-        """
-        INSERT INTO games (id, name, description, min_players, max_players, status)
-        VALUES ('tic-tac-toe','井字棋','经典井字棋',2,2,'active'),
-               ('gomoku','五子棋','9x9五子棋',2,2,'active')
-        ON CONFLICT (id) DO NOTHING
-        """
-    )
-    admin = await db.fetchrow("SELECT * FROM users WHERE username='admin'")
-    if not admin:
-        pwd = hash_password(settings()["admin_password"])
-        await db.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES ('admin',$1,'admin')",
-            pwd,
-        )
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await db.close_pool()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -125,11 +167,7 @@ async def websocket_endpoint(ws: WebSocket):
     # cookie auth
     token = ws.cookies.get("access_token")
     if token:
-        payload = decode_token(token)
-        if payload and payload.get("userId"):
-            row = await db.fetchrow("SELECT * FROM users WHERE id=$1", payload["userId"])
-            if row:
-                user = db.record_to_dict(row)
+        user = await user_from_access_token(token)
     try:
         while True:
             raw = await ws.receive_text()
@@ -141,11 +179,7 @@ async def websocket_endpoint(ws: WebSocket):
             typ = msg.get("type")
             if typ == "join":
                 if msg.get("token"):
-                    payload = decode_token(msg["token"])
-                    if payload and payload.get("userId"):
-                        row = await db.fetchrow("SELECT * FROM users WHERE id=$1", payload["userId"])
-                        if row:
-                            user = db.record_to_dict(row)
+                    user = await user_from_access_token(msg["token"]) or user
                 if not user:
                     await ws.send_text(json.dumps({"type": "error", "message": "未登录"}))
                     continue
@@ -159,10 +193,7 @@ async def websocket_endpoint(ws: WebSocket):
                     match_id,
                     user["id"],
                 )
-                if not seat:
-                    await ws.send_text(json.dumps({"type": "error", "message": "您不在此对局中"}))
-                    continue
-                seat_index = seat["seat_index"]
+                seat_index = seat["seat_index"] if seat else None
                 hub.subscribe(match_id, ws)
                 try:
                     view = await play_view(match_id, seat_index)
@@ -174,14 +205,18 @@ async def websocket_endpoint(ws: WebSocket):
                                 "type": "state",
                                 "matchId": match_id,
                                 "status": "waiting",
+                                "spectator": seat_index is None,
                                 "G": None,
                                 "message": "对局尚未开始",
                             }
                         )
                     )
             elif typ == "move":
-                if user is None or seat_index is None or not match_id:
+                if user is None or not match_id:
                     await ws.send_text(json.dumps({"type": "error", "message": "请先 join"}))
+                    continue
+                if seat_index is None:
+                    await ws.send_text(json.dumps({"type": "error", "message": "旁观不能落子"}))
                     continue
                 try:
                     await apply_seat_move(match_id, seat_index, msg.get("move"))

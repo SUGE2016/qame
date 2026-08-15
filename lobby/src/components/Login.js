@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { hashPasswordForTransmission } from '@qame/shared-utils';
+import { Icon } from '../icons';
 
 const Login = ({ onLogin }) => {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -13,25 +11,19 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
-      // 对密码进行哈希处理
       const { hashedPassword } = await hashPasswordForTransmission(formData.password);
-      
       const response = await fetch(`/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include', // 包含cookies
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           username: formData.username,
-          hashedPassword
-        })
+          password: formData.password,
+          hashedPassword,
+        }),
       });
-
       const data = await response.json();
-
       if (data.code === 200) {
         sessionStorage.setItem('user', JSON.stringify(data.data.user));
         if (data.data.accessToken) {
@@ -41,144 +33,56 @@ const Login = ({ onLogin }) => {
       } else {
         setError(data.message || '登录失败');
       }
-    } catch (error) {
-      console.error('登录错误:', error);
+    } catch (err) {
       setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '10px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-        maxWidth: '400px'
-      }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>
-          🎮 游戏平台登录
-        </h2>
-
-        {error && (
-          <div style={{
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            padding: '10px',
-            borderRadius: '5px',
-            marginBottom: '20px',
-            border: '1px solid #f5c6cb'
-          }}>
-            {error}
-          </div>
-        )}
-
+    <div className="q-login">
+      <div className="q-login-card">
+        <div className="q-brand" style={{ marginBottom: 24, justifyContent: 'center' }}>
+          <span className="q-brand-mark"><Icon name="grid" size={16} /></span>
+          <span>QAME</span>
+        </div>
+        <h1 style={{ fontSize: 22, margin: '0 0 8px', textAlign: 'center' }}>登录对战大厅</h1>
+        <p className="q-hint" style={{ textAlign: 'center', marginTop: 0, marginBottom: 24 }}>
+          账号由管理员发放
+        </p>
+        {error && <div className="q-alert" role="alert">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '5px',
-              color: '#555',
-              fontWeight: 'bold'
-            }}>
-              用户名
-            </label>
+          <label className="q-field" htmlFor="username">
+            <span>用户名</span>
             <input
-              type="text"
+              id="username"
               name="username"
               value={formData.username}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '5px',
-                fontSize: '16px',
-                boxSizing: 'border-box'
-              }}
-              placeholder="请输入用户名"
+              autoComplete="username"
             />
-          </div>
-
-          <div style={{ marginBottom: '30px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '5px',
-              color: '#555',
-              fontWeight: 'bold'
-            }}>
-              密码
-            </label>
+          </label>
+          <label className="q-field" htmlFor="password">
+            <span>密码</span>
             <input
+              id="password"
               type="password"
               name="password"
               value={formData.password}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '5px',
-                fontSize: '16px',
-                boxSizing: 'border-box'
-              }}
-              placeholder="请输入密码"
+              autoComplete="current-password"
             />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: loading ? '#ccc' : '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? '登录中...' : '登录'}
+          </label>
+          <button type="submit" className="q-btn q-btn-primary" style={{ width: '100%' }} disabled={loading}>
+            {loading ? '登录中…' : '进入大厅'}
           </button>
         </form>
-
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: '20px',
-          padding: '15px',
-          backgroundColor: '#e8f5e8',
-          borderRadius: '5px',
-          border: '1px solid #4caf50'
-        }}>
-          <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
-            <p><strong>📝 登录说明：</strong></p>
-            <p>• 请联系管理员获取用户名和密码</p>
-            <p>• 登录后即可进入对战大厅</p>
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
-export default Login; 
+export default Login;

@@ -1,125 +1,31 @@
 import React from 'react';
 
-/**
- * 井字棋游戏界面组件
- * 
- * 统一处理所有玩家，不区分AI和人类玩家
- * 
- * @param {Object} G - 游戏状态对象
- * @param {Object} ctx - 游戏上下文对象
- * @param {Object} moves - 可用的移动函数
- * @param {string} playerID - 当前玩家ID
- * @param {boolean} isActive - 当前玩家是否处于活动状态
- * @param {Object} setupData - 设置数据
- */
-const TicTacToeBoard = ({ G, ctx, moves, playerID, isActive, setupData, matchInfo }) => {
-  // 渲染调试信息（仅在开发模式显示）
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Board] 渲染', { 
-      playerID, 
-      currentPlayer: ctx.currentPlayer, 
-      gameover: ctx.gameover
-    });
-  }
+const TicTacToeBoard = ({ G, ctx, moves, playerID }) => {
+  const isMyTurn = playerID != null && String(playerID) === String(ctx.currentPlayer) && !ctx.gameover;
+  const cells = G?.cells || [];
 
-  // 以回合为准，避免 isActive 异常导致无法行动
-  const isMyTurn = playerID != null && playerID.toString() === ctx.currentPlayer && !ctx.gameover;
-
-  /** @param {number} id - 格子索引 (0-8) */
   const onClick = (id) => {
-    if (
-      typeof id === 'number' &&
-      id >= 0 &&
-      id < 9 &&
-      isMyTurn &&
-      playerID !== null &&
-      G.cells &&
-      G.cells[id] === null
-    ) {
-      moves.makeMove(id);
-    }
+    if (!isMyTurn || cells[id] != null) return;
+    moves.makeMove(id);
   };
-
-  const getPlayerSymbol = (player) => {
-    return player === '0' ? 'X' : 'O';
-  };
-
-  const getPlayerColor = (player) => {
-    return player === '0' ? '#2196F3' : '#F44336';
-  };
-
-  let gameStatus = '';
-  
-  if (ctx.gameover) {
-    if (ctx.gameover.winner) {
-      gameStatus = <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#4CAF50', margin: '1rem 0' }}>
-        🎉 玩家 {getPlayerSymbol(ctx.gameover.winner)} 获胜！
-      </div>;
-    } else if (ctx.gameover.draw) {
-      gameStatus = <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#FF9800', margin: '1rem 0' }}>
-        🤝 游戏平局！
-      </div>;
-    }
-  } else {
-    const currentPlayerSymbol = getPlayerSymbol(ctx.currentPlayer);
-    
-    gameStatus = (
-      <div style={{ textAlign: 'center', fontSize: '1.2rem', margin: '2rem 0' }}>
-        当前玩家: <span style={{ color: getPlayerColor(ctx.currentPlayer) }}>
-          {currentPlayerSymbol}
-        </span>
-      </div>
-    );
-  }
 
   return (
-    <div style={{ textAlign: 'center', padding: '20px' }}>
-      {/* 游戏状态显示 */}
-      <div style={{ marginBottom: '20px' }}>
-        {ctx.gameover ? (
-          <div>
-            <h2 style={{ color: '#4caf50' }}>
-              {ctx.gameover.winner ? `玩家 ${ctx.gameover.winner} 获胜！` : '游戏平局！'}
-            </h2>
-            <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>
-              🎉 游戏结束！可使用上方"返回对战大厅"按钮回到大厅
-            </p>
-          </div>
-        ) : (
-          <div>
-            <h3>当前玩家: {ctx.currentPlayer}</h3>
-          </div>
-        )}
-      </div>
-
-      {/* 游戏棋盘 */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '5px',
-        maxWidth: '300px',
-        margin: '0 auto'
-      }}>
-        {G.cells.map((cell, index) => (
+    <div className="q-board is-ttt" role="grid" aria-label="井字棋棋盘">
+      {cells.map((cell, index) => {
+        const mark = cell === '0' || cell === 0 ? 'X' : cell === '1' || cell === 1 ? 'O' : '';
+        return (
           <button
             key={index}
+            type="button"
+            className={`q-cell${mark === 'X' ? ' is-x' : mark === 'O' ? ' is-o' : ''}`}
             onClick={() => onClick(index)}
-            disabled={!isMyTurn || cell !== null || ctx.gameover}
-            style={{
-              width: '80px',
-              height: '80px',
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              border: '2px solid #333',
-              backgroundColor: cell ? '#e0e0e0' : '#fff',
-              cursor: isMyTurn && cell === null && !ctx.gameover ? 'pointer' : 'not-allowed',
-              color: cell === '0' ? '#f44336' : '#2196f3'
-            }}
+            disabled={!isMyTurn || mark !== '' || Boolean(ctx.gameover)}
+            aria-label={`格子 ${index + 1}${mark ? ` ${mark}` : ''}`}
           >
-            {cell === '0' ? 'X' : cell === '1' ? 'O' : ''}
+            {mark}
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 };

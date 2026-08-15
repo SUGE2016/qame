@@ -74,7 +74,13 @@ export const api = {
   logout: () => apiCall('/api/auth/logout', { method: 'POST' }),
 
   // 管理员相关
-  getUsers: (page = 1, limit = 10) => apiCall(`/api/admin/users?page=${page}&limit=${limit}`),
+  getUsers: (page = 1, limit = 20, filters = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v != null && v !== '' && v !== 'all') params.set(k, v);
+    });
+    return apiCall(`/api/admin/users?${params}`);
+  },
   createUser: (userData) => apiCall('/api/admin/users', {
     method: 'POST',
     body: JSON.stringify(userData)
@@ -85,8 +91,14 @@ export const api = {
   }),
   deleteUser: (userId) => apiCall(`/api/admin/users/${userId}`, { method: 'DELETE' }),
   getStats: () => apiCall('/api/admin/stats'),
-
-  // AI相关（新架构）
+  getAdminOverview: () => apiCall('/api/admin/overview'),
+  getAdminAudit: (page = 1, limit = 20, filters = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v != null && v !== '' && v !== 'all') params.set(k, v);
+    });
+    return apiCall(`/api/admin/audit?${params}`);
+  },
   getAIClients: () => apiCall('/api/ai/clients'),
   getAIPlayers: () => apiCall('/api/ai/players'),
   getActiveAIPlayers: () => apiCall('/api/ai/players/active'),
@@ -105,27 +117,15 @@ export const api = {
   }),
   deleteAIClient: (clientId) => apiCall(`/api/ai/clients/${clientId}`, { method: 'DELETE' }),
   deleteAIPlayer: (playerId) => apiCall(`/api/ai/players/${playerId}`, { method: 'DELETE' }),
-  // AI相关（兼容旧接口）
-  getAITypes: (gameId) => apiCall(`/api/ai/types${gameId ? `?gameId=${gameId}` : ''}`),
-  callAI: (aiTypeId, gameState, config) => apiCall('/api/ai/move', {
+  createGame: (gameData) => apiCall('/api/admin/games', {
     method: 'POST',
-    body: JSON.stringify({ aiTypeId, gameState, config })
+    body: JSON.stringify(gameData)
   }),
-  testAI: (aiTypeId) => apiCall('/api/ai/test', {
-    method: 'POST',
-    body: JSON.stringify({ aiTypeId })
-  }),
-  
-  getAdminAITypes: (gameId) => apiCall(`/api/admin/ai-types${gameId ? `?gameId=${gameId}` : ''}`),
-  createAIType: (typeData) => apiCall('/api/admin/ai-types', {
-    method: 'POST',
-    body: JSON.stringify(typeData)
-  }),
-  updateAIType: (typeId, typeData) => apiCall(`/api/admin/ai-types/${typeId}`, {
+  updateGame: (gameId, gameData) => apiCall(`/api/admin/games/${gameId}`, {
     method: 'PUT',
-    body: JSON.stringify(typeData)
+    body: JSON.stringify(gameData)
   }),
-  deleteAIType: (typeId) => apiCall(`/api/admin/ai-types/${typeId}`, { method: 'DELETE' }),
+  deleteGame: (gameId) => apiCall(`/api/admin/games/${gameId}`, { method: 'DELETE' }),
 
   // 游戏相关
   getGames: () => apiCall('/api/games'),
@@ -144,6 +144,11 @@ export const api = {
   }),
   getMatch: (matchId) => apiCall(`/api/matches/${matchId}`),
   deleteMatch: (matchId) => apiCall(`/api/matches/${matchId}`, { method: 'DELETE' }),
+  deleteMatches: (ids) => apiCall('/api/matches/batch-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids })
+  }),
+  getMatchHistory: (matchId) => apiCall(`/api/stats/matches/${matchId}/history`),
   addPlayerToMatch: (matchId, playerData) => apiCall(`/api/matches/${matchId}/players`, {
     method: 'POST',
     body: JSON.stringify(playerData)
@@ -152,10 +157,5 @@ export const api = {
   startMatch: (matchId) => apiCall(`/api/matches/${matchId}/start`, { method: 'POST' }),
   cancelMatch: (matchId) => apiCall(`/api/matches/${matchId}/cancel`, { method: 'POST' }),
   checkGameStatus: (matchId) => apiCall(`/api/matches/${matchId}/check-game-status`, { method: 'POST' }),
-  getCredentials: (matchId) => apiCall(`/api/matches/${matchId}/credentials`),
-  syncMatches: () => apiCall('/api/matches/sync', { method: 'POST' }),
-
-  // 在线用户相关
-  getOnlineUsers: () => apiCall('/api/online/users'),
-  setOffline: () => apiCall('/api/online/offline', { method: 'POST' })
+  getCredentials: (matchId) => apiCall(`/api/matches/${matchId}/credentials`)
 }; 

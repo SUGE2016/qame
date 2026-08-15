@@ -44,6 +44,15 @@ POST /v1/matches/{id}/moves  { seat, move }
 
 平台开局时创建 Host 对局；选手 `/api/play` 与 WS 由平台转发。
 
+## 3.1 房间状态机
+
+`waiting` → `playing` / `cancelled`；`playing` → `finished` / `cancelled`。终态不可再开局。
+
+- 开局须人数 ≥ `min_players`
+- 进行中人数掉到不足、或空 waiting 房：自动 `cancelled`
+- 删除用户前先取消其未结束对局；`creator_id` 允许 SET NULL
+- 启动时对账一遍未结束房间，清掉人数不足的残局
+
 ## 4. Agent
 
 - MCP：`mcp/`（打平台 `/api/*`，支持 refresh）

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '@qame/shared-utils';
+import Pager from './Pager';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -8,20 +10,22 @@ const UserManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState({ username: '', password: '', role: 'user' });
   const [error, setError] = useState('');
+  const [q, setQ] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [sortDir, setSortDir] = useState('desc');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 20;
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = async (p = page) => {
     try {
-      const response = await fetch(`/api/admin/users`, {
-        credentials: 'include' // 使用Cookie认证
-      });
-
-      const data = await response.json();
+      setLoading(true);
+      const data = await api.getUsers(p, limit, { q, role: roleFilter, order: sortDir });
       if (data.code === 200) {
-        setUsers(data.data.users);
+        setUsers(data.data.users || []);
+        setTotal(data.data.total || 0);
+        setPage(data.data.page || p);
+        setError('');
       } else {
         setError(data.message || '获取用户列表失败');
       }
@@ -33,22 +37,17 @@ const UserManagement = () => {
     }
   };
 
+  useEffect(() => {
+    fetchUsers(page);
+  }, [page, q, roleFilter, sortDir]);
+
   const handleCreateUser = async () => {
     try {
-      const response = await fetch(`/api/admin/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(createForm)
-      });
-
-      const data = await response.json();
+      const data = await api.createUser(createForm);
       if (data.code === 200) {
         setShowCreateForm(false);
         setCreateForm({ username: '', password: '', role: 'user' });
-        fetchUsers();
+        fetchUsers(1);
         setError('');
       } else {
         setError(data.message || '创建用户失败');
@@ -66,16 +65,7 @@ const UserManagement = () => {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(editForm)
-      });
-
-      const data = await response.json();
+      const data = await api.updateUser(editingUser.id, editForm);
       if (data.code === 200) {
         setEditingUser(null);
         fetchUsers();
@@ -90,17 +80,9 @@ const UserManagement = () => {
   };
 
   const handleDelete = async (userId) => {
-    if (!window.confirm('确定要删除这个用户吗？')) {
-      return;
-    }
-
+    if (!window.confirm('确定要删除这个用户吗？')) return;
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-
-      const data = await response.json();
+      const data = await api.deleteUser(userId);
       if (data.code === 200) {
         fetchUsers();
         setError('');
@@ -113,263 +95,92 @@ const UserManagement = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
-        <div style={{ fontSize: '18px', color: '#666' }}>
-          🔄 正在加载用户列表...
-        </div>
-      </div>
-    );
+  if (loading && users.length === 0) {
+    return <div className="a-center">正在加载用户…</div>;
   }
 
   return (
     <div>
-      {/* 错误提示 */}
-      {error && (
-        <div style={{
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          padding: '10px',
-          borderRadius: '5px',
-          marginBottom: '20px',
-          border: '1px solid #f5c6cb'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* 创建用户按钮 */}
-      <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          style={{
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          ➕ 创建新用户
+      {error && <div className="a-alert a-alert-error">{error}</div>}
+      <div className="a-page-head" style={{ marginTop: 0 }}>
+        <span className="a-muted">账号与角色</span>
+        <button type="button" className="a-btn a-btn-cta a-btn-sm" onClick={() => setShowCreateForm(true)}>
+          创建用户
         </button>
       </div>
 
-      {/* 创建用户表单 */}
       {showCreateForm && (
-        <div style={{
-          backgroundColor: '#f8f9fa',
-          padding: '20px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          border: '1px solid #dee2e6'
-        }}>
-          <h3 style={{ marginTop: 0, marginBottom: '15px' }}>创建新用户</h3>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder="用户名"
-              value={createForm.username}
-              onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-            <input
-              type="password"
-              placeholder="密码"
-              value={createForm.password}
-              onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-            <select
-              value={createForm.role}
-              onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            >
+        <div className="a-form">
+          <h3>创建用户</h3>
+          <div className="a-form-row">
+            <input className="a-input" type="text" placeholder="用户名" value={createForm.username} onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })} />
+            <input className="a-input" type="password" placeholder="密码" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} />
+            <select className="a-input" value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}>
               <option value="user">普通用户</option>
               <option value="admin">管理员</option>
             </select>
-            <button
-              onClick={handleCreateUser}
-              style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              创建
-            </button>
-            <button
-              onClick={() => {
-                setShowCreateForm(false);
-                setCreateForm({ username: '', password: '', role: 'user' });
-              }}
-              style={{
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              取消
-            </button>
+            <button type="button" className="a-btn a-btn-primary a-btn-sm" onClick={handleCreateUser}>创建</button>
+            <button type="button" className="a-btn a-btn-ghost a-btn-sm" onClick={() => { setShowCreateForm(false); setCreateForm({ username: '', password: '', role: 'user' }); }}>取消</button>
           </div>
         </div>
       )}
 
-      {/* 用户列表 */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="a-filters">
+        <input className="a-input" type="search" placeholder="搜索用户名 / ID" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+        <select className="a-input" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
+          <option value="all">全部角色</option>
+          <option value="admin">管理员</option>
+          <option value="user">普通用户</option>
+        </select>
+      </div>
+
+      <div className="a-table-wrap">
+        <table className="a-table">
           <thead>
-            <tr style={{ backgroundColor: '#f8f9fa' }}>
-              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>ID</th>
-              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>用户名</th>
-              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>角色</th>
-              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>创建时间</th>
-              <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>操作</th>
+            <tr>
+              <th>ID</th>
+              <th>用户名</th>
+              <th>角色</th>
+              <th>
+                <button type="button" className="a-th-sort" onClick={() => { setSortDir((d) => (d === 'desc' ? 'asc' : 'desc')); setPage(1); }}>
+                  创建时间 {sortDir === 'desc' ? '↓' : '↑'}
+                </button>
+              </th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user.id} style={{ borderBottom: '1px solid #f8f9fa' }}>
-                <td style={{ padding: '15px' }}>{user.id}</td>
-                <td style={{ padding: '15px' }}>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.id}</td>
+                <td>
                   {editingUser && editingUser.id === user.id ? (
-                    <input
-                      type="text"
-                      value={editForm.username}
-                      onChange={(e) => setEditForm({...editForm, username: e.target.value})}
-                      style={{
-                        padding: '5px 8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '3px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  ) : (
-                    user.username
-                  )}
+                    <input className="a-input" type="text" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} />
+                  ) : user.username}
                 </td>
-                <td style={{ padding: '15px' }}>
+                <td>
                   {editingUser && editingUser.id === user.id ? (
-                    <select
-                      value={editForm.role}
-                      onChange={(e) => setEditForm({...editForm, role: e.target.value})}
-                      style={{
-                        padding: '5px 8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '3px',
-                        fontSize: '14px'
-                      }}
-                    >
+                    <select className="a-input" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
                       <option value="user">普通用户</option>
                       <option value="admin">管理员</option>
                     </select>
                   ) : (
-                    <span style={{
-                      backgroundColor: user.role === 'admin' ? '#dc3545' : '#28a745',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px'
-                    }}>
+                    <span className={`a-badge ${user.role === 'admin' ? 'a-badge-admin' : 'a-badge-user'}`}>
                       {user.role === 'admin' ? '管理员' : '普通用户'}
                     </span>
                   )}
                 </td>
-                <td style={{ padding: '15px' }}>
-                  {new Date(user.created_at).toLocaleString('zh-CN')}
-                </td>
-                <td style={{ padding: '15px' }}>
+                <td>{user.created_at ? new Date(user.created_at).toLocaleString('zh-CN') : '-'}</td>
+                <td>
                   {editingUser && editingUser.id === user.id ? (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button
-                        onClick={handleSave}
-                        style={{
-                          backgroundColor: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        保存
-                      </button>
-                      <button
-                        onClick={() => setEditingUser(null)}
-                        style={{
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        取消
-                      </button>
+                    <div className="a-actions">
+                      <button type="button" className="a-btn a-btn-cta a-btn-sm" onClick={handleSave}>保存</button>
+                      <button type="button" className="a-btn a-btn-ghost a-btn-sm" onClick={() => setEditingUser(null)}>取消</button>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button
-                        onClick={() => handleEdit(user)}
-                        style={{
-                          backgroundColor: '#007bff',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        style={{
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        删除
-                      </button>
+                    <div className="a-actions">
+                      <button type="button" className="a-btn a-btn-ghost a-btn-sm" onClick={() => handleEdit(user)}>编辑</button>
+                      <button type="button" className="a-btn a-btn-danger a-btn-sm" onClick={() => handleDelete(user.id)}>删除</button>
                     </div>
                   )}
                 </td>
@@ -377,9 +188,11 @@ const UserManagement = () => {
             ))}
           </tbody>
         </table>
+        {users.length === 0 && <div className="a-empty">没有匹配的用户</div>}
       </div>
+      <Pager page={page} limit={limit} total={total} onPage={setPage} />
     </div>
   );
 };
 
-export default UserManagement; 
+export default UserManagement;

@@ -66,6 +66,9 @@ export async function refreshAccessToken() {
     });
     if (data.accessToken) {
       session.token = data.accessToken;
+      if (data.refreshToken) {
+        session.refreshToken = data.refreshToken;
+      }
       return true;
     }
   } catch {
@@ -78,7 +81,7 @@ export async function login(username, password) {
   const hashedPassword = hashPassword(password);
   const data = await api('POST', '/api/auth/login', {
     auth: false,
-    body: { username, hashedPassword },
+    body: { username, password, hashedPassword },
   });
   if (!data.accessToken) {
     throw new Error('登录成功但未返回 accessToken，请确认平台版本');

@@ -8,34 +8,31 @@
 cd mcp && npm install
 ```
 
-## Cursor 配置
+## 鉴权（PAT）
 
-在 MCP settings 中增加：
+不要把用户名密码写进 `mcp.json`。本机和正式部署同一套：只换 `QAME_URL`。
 
-```json
-{
-  "mcpServers": {
-    "qame": {
-      "command": "node",
-      "args": ["<repo>/mcp/src/index.js"],
-      "env": {
-        "QAME_URL": "http://localhost:8001",
-        "QAME_USERNAME": "admin",
-        "QAME_PASSWORD": "admin123",
-        "QAME_PASSWORD_SALT": "<与平台 PASSWORD_SALT 相同>"
-      }
-    }
-  }
-}
+```bash
+# 登录一次，签发个人访问令牌（只打印一次）
+./scripts/create-pat.sh <username> <password> mcp
+export QAME_TOKEN='qame_pat_...'
 ```
 
-经 Nginx 时 `QAME_URL` 用 `https://你的域名`（需可信证书或本机忽略校验由运行环境决定）。
+Cursor 配置见 `mcp/cursor.mcp.json.example`。本机已拆成两个 server，PAT 互不影响：
+
+- `qame`：普通选手（加入、落子）
+- `qame-admin`：管理员（建房、取消、清残局）
+
+正式环境把 `QAME_URL` 改成 `https://你的域名`。令牌可在对应身份下 `qame_list_pats` / `qame_revoke_pat` 管理。
 
 ## Tools（P1）
 
 | Tool | 用途 |
 |------|------|
-| `qame_login` | 登录 |
+| `qame_login` | 密码登录（仅用于首次签发 PAT） |
+| `qame_create_pat` | 创建访问令牌（只返回一次） |
+| `qame_list_pats` | 列出令牌（无明文） |
+| `qame_revoke_pat` | 撤销令牌 |
 | `qame_list_games` | 游戏列表 |
 | `qame_list_matches` | 比赛列表 |
 | `qame_get_match` | 比赛详情 |

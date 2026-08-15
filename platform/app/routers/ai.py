@@ -6,8 +6,9 @@ import time
 from fastapi import APIRouter, Depends
 
 from .. import db
-from ..auth_util import get_current_user
+from ..auth_util import get_current_user, require_admin
 from ..resp import err, ok
+from ..schemas import CreateAIClientBody, CreateAIPlayerBody, UpdateAIClientBody, UpdateAIPlayerBody, parse_body
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -37,9 +38,12 @@ async def get_client(client_id: str, _user=Depends(get_current_user)):
 
 
 @router.post("/clients")
-async def create_client(body: dict, _user=Depends(get_current_user)):
-    name, endpoint = body.get("name"), body.get("endpoint")
-    games = body.get("supported_games") or []
+async def create_client(body: dict, _admin=Depends(require_admin)):
+    req, bad = parse_body(CreateAIClientBody, body)
+    if bad:
+        return bad
+    name, endpoint = req.name, req.endpoint
+    games = req.supported_games or []
     if not name or not endpoint:
         return err(400, "缺少必要参数：name、endpoint")
     if not isinstance(games, list) or len(games) == 0:
@@ -54,20 +58,23 @@ async def create_client(body: dict, _user=Depends(get_current_user)):
         name,
         endpoint,
         games,
-        body.get("description") or "",
+        req.description or "",
     )
     return ok(db.record_to_dict(row), "创建成功")
 
 
 @router.put("/clients/{client_id}")
-async def update_client(client_id: str, body: dict, _user=Depends(get_current_user)):
+async def update_client(client_id: str, body: dict, _admin=Depends(require_admin)):
+    req, bad = parse_body(UpdateAIClientBody, body)
+    if bad:
+        return bad
     existing = await db.fetchrow("SELECT * FROM ai_clients WHERE id=$1", client_id)
     if not existing:
         return err(404, "AI客户端不存在")
-    name = body.get("name", existing["name"])
-    endpoint = body.get("endpoint", existing["endpoint"])
-    games = body.get("supported_games", list(existing["supported_games"] or []))
-    description = body.get("description", existing["description"])
+    name = req.name if req.name is not None else existing["name"]
+    endpoint = req.endpoint if req.endpoint is not None else existing["endpoint"]
+    games = req.supported_games if req.supported_games is not None else list(existing["supported_games"] or [])
+    description = req.description if req.description is not None else existing["description"]
     row = await db.fetchrow(
         """
         UPDATE ai_clients
@@ -84,7 +91,7 @@ async def update_client(client_id: str, body: dict, _user=Depends(get_current_us
 
 
 @router.delete("/clients/{client_id}")
-async def delete_client(client_id: str, _user=Depends(get_current_user)):
+async def delete_client(client_id: str, _admin=Depends(require_admin)):
     row = await db.fetchrow("DELETE FROM ai_clients WHERE id=$1 RETURNING *", client_id)
     if not row:
         return err(404, "AI客户端不存在")
@@ -121,9 +128,12 @@ async def players_by_client(client_id: str, _user=Depends(get_current_user)):
 
 
 @router.post("/players")
-async def create_ai_player(body: dict, _user=Depends(get_current_user)):
-    name = body.get("player_name")
-    client_id = body.get("ai_client_id")
+async def create_ai_player(body: dict, _admin=Depends(require_admin)):
+    req, bad = parse_body(CreateAIPlayerBody, body)
+    if bad:
+        return bad
+    name = req.player_name
+    client_id = req.ai_client_id
     if not name or not client_id:
         return err(400, "缺少必要参数：player_name、ai_client_id")
     client = await db.fetchrow("SELECT id FROM ai_clients WHERE id=$1", client_id)
@@ -154,12 +164,15 @@ async def create_ai_player(body: dict, _user=Depends(get_current_user)):
 
 
 @router.put("/players/{player_id}")
-async def update_ai_player(player_id: int, body: dict, _user=Depends(get_current_user)):
+async def update_ai_player(player_id: int, body: dict, _admin=Depends(require_admin)):
+    req, bad = parse_body(UpdateAIPlayerBody, body)
+    if bad:
+        return bad
     existing = await db.fetchrow("SELECT * FROM ai_players WHERE id=$1", player_id)
     if not existing:
         return err(404, "AI玩家不存在")
-    player_name = body.get("player_name", existing["player_name"])
-    status = body.get("status", existing["status"])
+    player_name = req.player_name if req.player_name is not None else existing["player_name"]
+    status = req.status if req.status is not None else existing["status"]
     try:
         row = await db.fetchrow(
             """
@@ -185,7 +198,7 @@ async def update_ai_player(player_id: int, body: dict, _user=Depends(get_current
 
 
 @router.delete("/players/{player_id}")
-async def delete_ai_player(player_id: int, _user=Depends(get_current_user)):
+async def delete_ai_player(player_id: int, _admin=Depends(require_admin)):
     row = await db.fetchrow("DELETE FROM ai_players WHERE id=$1 RETURNING *", player_id)
     if not row:
         return err(404, "AI玩家不存在")

@@ -1,6 +1,15 @@
 // Lobby内部的Match相关工具函数
 import { api } from '@qame/shared-utils';
 
+/** 进行中不可删；等人房创建者/管理员可删；已结束/已取消仅管理员可删（留存治理） */
+export const canDeleteMatch = (match, { userId, isAdmin } = {}) => {
+  const status = match?.status;
+  if (status === 'playing') return false;
+  if (status === 'waiting') return Boolean(isAdmin || (userId != null && match.creator_id === userId));
+  if (status === 'finished' || status === 'cancelled') return Boolean(isAdmin);
+  return false;
+};
+
 /**
  * 删除Match的通用函数（Lobby内部使用）
  * @param {string} matchId - Match ID

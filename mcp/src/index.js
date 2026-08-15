@@ -31,7 +31,8 @@ function requireAuth() {
 server.registerTool(
   'qame_login',
   {
-    description: '登录 QAME，获取访问令牌。也可依赖环境变量 QAME_USERNAME/QAME_PASSWORD 自动登录。',
+    description:
+      '用密码登录（仅用于首次签发 PAT）。日常请配置 QAME_TOKEN，不要把密码写进 mcp.json。',
     inputSchema: {
       username: z.string().optional().describe('用户名；省略则用环境变量'),
       password: z.string().optional().describe('密码明文；省略则用环境变量'),
@@ -49,7 +50,63 @@ server.registerTool(
         user: data.user,
         playerId: player.id,
         playerName: player.player_name,
+        hint: '请接着 qame_create_pat，把返回的 token 写入 QAME_TOKEN 后去掉密码配置',
       });
+    } catch (err) {
+      return errorResult(err);
+    }
+  }
+);
+
+server.registerTool(
+  'qame_create_pat',
+  {
+    description: '创建个人访问令牌（只返回一次）。写入环境变量 QAME_TOKEN 后即可去掉用户名密码。',
+    inputSchema: {
+      name: z.string().optional().describe('备注，默认 mcp'),
+      expiresInDays: z.number().int().optional().describe('省略则长期有效，可随时撤销'),
+    },
+  },
+  async ({ name, expiresInDays }) => {
+    try {
+      requireAuth();
+      const body = {};
+      if (name) body.name = name;
+      if (expiresInDays !== undefined) body.expiresInDays = expiresInDays;
+      const data = await api('POST', '/api/auth/pats', { body });
+      return textResult(data);
+    } catch (err) {
+      return errorResult(err);
+    }
+  }
+);
+
+server.registerTool(
+  'qame_list_pats',
+  {
+    description: '列出当前用户的访问令牌（不含明文）',
+    inputSchema: {},
+  },
+  async () => {
+    try {
+      requireAuth();
+      return textResult(await api('GET', '/api/auth/pats'));
+    } catch (err) {
+      return errorResult(err);
+    }
+  }
+);
+
+server.registerTool(
+  'qame_revoke_pat',
+  {
+    description: '撤销一条个人访问令牌',
+    inputSchema: { patId: z.number().int() },
+  },
+  async ({ patId }) => {
+    try {
+      requireAuth();
+      return textResult(await api('DELETE', `/api/auth/pats/${patId}`));
     } catch (err) {
       return errorResult(err);
     }

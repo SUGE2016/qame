@@ -88,6 +88,10 @@ services:
       dockerfile: platform/Dockerfile
       args:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
     image: localhost/hqit/qame-platform:latest
     ports:
       - "8001:8001"
@@ -105,18 +109,25 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - PASSWORD_SALT=${PASSWORD_SALT}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY:-}
+      - QAME_ENV=${QAME_ENV:-development}
+      - PUBLIC_URL=${PUBLIC_URL:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
       - AI_SERVICE_TIMEOUT=${AI_SERVICE_TIMEOUT:-30000}
       - GAME_TTT_URL=http://game-tic-tac-toe:8101
       - GAME_GOMOKU_URL=http://game-gomoku:8102
+      - GAME_BATTLESHIP_URL=http://game-battleship:8103
       # 宿主 Docker 代理勿劫持容器内服务名
-      - NO_PROXY=localhost,127.0.0.1,postgres,game-tic-tac-toe,game-gomoku,api-server,qame-network
-      - no_proxy=localhost,127.0.0.1,postgres,game-tic-tac-toe,game-gomoku,api-server,qame-network
+      - NO_PROXY=localhost,127.0.0.1,postgres,game-tic-tac-toe,game-gomoku,game-battleship,api-server,qame-network
+      - no_proxy=localhost,127.0.0.1,postgres,game-tic-tac-toe,game-gomoku,game-battleship,api-server,qame-network
     depends_on:
       postgres:
         condition: service_healthy
       game-tic-tac-toe:
         condition: service_healthy
       game-gomoku:
+        condition: service_healthy
+      game-battleship:
         condition: service_healthy
     networks:
       - qame-network
@@ -134,6 +145,8 @@ services:
       args:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
     image: localhost/hqit/qame-game-ttt:latest
+    environment:
+      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY:-}
     expose:
       - "8101"
     networks:
@@ -152,6 +165,8 @@ services:
       args:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
     image: localhost/hqit/qame-game-gomoku:latest
+    environment:
+      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY:-}
     expose:
       - "8102"
     networks:
@@ -159,6 +174,26 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8102/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  game-battleship:
+    build:
+      context: .
+      dockerfile: games/battleship/Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: localhost/hqit/qame-game-battleship:latest
+    environment:
+      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY:-}
+    expose:
+      - "8103"
+    networks:
+      - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8103/health')\""]
       interval: 10s
       timeout: 5s
       retries: 10

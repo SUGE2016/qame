@@ -37,7 +37,7 @@ Agent：全自动或每步请示（Skill 行为约定）。
 
 ### US-11 登录授权
 我：先登录 qame。  
-Agent：`qame_login` 或环境变量预置账号 → 后续工具带身份。
+Agent：环境变量 `QAME_TOKEN`（PAT），或一次性 `qame_login` 后 `qame_create_pat`。
 
 ## P2
 
@@ -54,7 +54,7 @@ Agent：`qame_login` 或环境变量预置账号 → 后续工具带身份。
 
 | Story | Tools |
 |-------|--------|
-| US-11 | `qame_login` |
+| US-11 | `qame_login`, `qame_create_pat`（日常用 `QAME_TOKEN`） |
 | US-1 | `qame_list_games`, `qame_list_matches`, `qame_get_match` |
 | US-3 | `qame_spectate` |
 | US-4/5 | `qame_create_match`, `qame_join_match`, `qame_start_match`, `qame_cancel_match` |

@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Header, Request
 
 from .. import db
+from ..auth_util import user_from_access_token
 from ..match_service import apply_seat_move, play_view
 from ..resp import err, ok
 from .. import game_client
+from ..schemas import PlayMoveBody, parse_body
 
 router = APIRouter(prefix="/api/play", tags=["play"])
 
@@ -29,9 +31,23 @@ async def _seat(match_id: str, token: str | None):
         match_id,
         token,
     )
-    if not row:
-        return None, err(403, "seatToken 无效或不属于此对局")
-    return db.record_to_dict(row), None
+    if row:
+        return db.record_to_dict(row), None
+    user = await user_from_access_token(token)
+    if user:
+        row = await db.fetchrow(
+            """
+            SELECT mp.*, p.player_name, p.player_type
+            FROM match_players mp
+            JOIN players p ON p.id = mp.player_id
+            WHERE mp.match_id=$1 AND p.user_id=$2 AND p.player_type='human'
+            """,
+            match_id,
+            user["id"],
+        )
+        if row:
+            return db.record_to_dict(row), None
+    return None, err(403, "seatToken 无效或不属于此对局")
 
 
 @router.get("/{match_id}")
@@ -63,10 +79,13 @@ async def move(
     seat, e = await _seat(match_id, _token(request, authorization, x_seat_token))
     if e:
         return e
-    if body.get("move") is None:
+    req, bad = parse_body(PlayMoveBody, body)
+    if bad:
+        return bad
+    if req.move is None:
         return err(400, "缺少 move")
     try:
-        await apply_seat_move(match_id, seat["seat_index"], body["move"])
+        await apply_seat_move(match_id, seat["seat_index"], req.move)
         data = await play_view(match_id, seat["seat_index"])
         return ok(data, "落子成功")
     except game_client.GameClientError as ex:

@@ -1,10 +1,12 @@
 """通用游戏 Host：内存对局 + 标准 /v1 API。"""
 from __future__ import annotations
 
+import os
 from typing import Any, Callable, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 CreateState = Callable[[dict], dict]
@@ -24,6 +26,19 @@ class MoveBody(BaseModel):
     move: Any
 
 
+class RestoreBody(BaseModel):
+    G: dict
+    turn: str | int = "0"
+    status: str = "playing"
+    result: Any = None
+    ply: int = 0
+    moves: list = Field(default_factory=list)
+    players: list = Field(default_factory=list)
+
+
+ViewState = Callable[[dict, Optional[str]], dict]
+
+
 def build_game_app(
     *,
     game_id: str,
@@ -32,9 +47,18 @@ def build_game_app(
     legal_moves: LegalMoves,
     apply_move: ApplyMove,
     check_end: CheckEnd,
+    view_state: Optional[ViewState] = None,
 ) -> FastAPI:
     app = FastAPI(title=f"QAME Game: {game_name}", version="1.0.0")
     rooms: dict[str, dict] = {}
+
+    @app.middleware("http")
+    async def _internal_key(request: Request, call_next):
+        if request.url.path.startswith("/v1/"):
+            key = os.getenv("INTERNAL_SERVICE_KEY", "")
+            if key and request.headers.get("x-internal-key") != key:
+                return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        return await call_next(request)
 
     @app.get("/health")
     def health():
@@ -60,11 +84,41 @@ def build_game_app(
         return _public(rooms[mid])
 
     @app.get("/v1/matches/{match_id}")
-    def get_match(match_id: str):
+    def get_match(match_id: str, seat: Optional[str] = None):
         room = rooms.get(match_id)
         if not room:
             raise HTTPException(404, "match not found")
-        return _public(room)
+        return _public(room, seat)
+
+    @app.get("/v1/matches/{match_id}/snapshot")
+    def get_snapshot(match_id: str):
+        room = rooms.get(match_id)
+        if not room:
+            raise HTTPException(404, "match not found")
+        return {
+            "G": room["G"],
+            "turn": room["turn"],
+            "status": room["status"],
+            "result": room["result"],
+            "ply": room["ply"],
+            "moves": room["moves"],
+            "players": room["players"],
+        }
+
+    @app.put("/v1/matches/{match_id}")
+    def restore_match(match_id: str, body: RestoreBody):
+        rooms[match_id] = {
+            "matchId": match_id,
+            "gameId": game_id,
+            "G": body.G,
+            "turn": str(body.turn),
+            "status": body.status or "playing",
+            "result": body.result,
+            "ply": int(body.ply or 0),
+            "moves": body.moves or [],
+            "players": body.players or [],
+        }
+        return _public(rooms[match_id])
 
     @app.post("/v1/matches/{match_id}/moves")
     def post_move(match_id: str, body: MoveBody):
@@ -99,12 +153,18 @@ def build_game_app(
         rooms.pop(match_id, None)
         return {"ok": True}
 
-    def _public(room: dict) -> dict:
+    def _shape(G: dict, viewer: Optional[str]) -> dict:
+        if not view_state:
+            return G
+        seat = None if viewer in (None, "") else str(viewer)
+        return view_state(G, seat)
+
+    def _public(room: dict, viewer: Optional[str] = None) -> dict:
         turn = room["turn"]
         return {
             "matchId": room["matchId"],
             "gameId": room["gameId"],
-            "G": room["G"],
+            "G": _shape(room["G"], viewer),
             "turn": turn,
             "status": room["status"],
             "result": room["result"],

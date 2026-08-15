@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from .. import db
 from ..auth_util import get_current_user
 from ..resp import err, ok
+from ..schemas import EnsurePlayerBody, PatchPlayerStatusBody, parse_body
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
@@ -19,13 +20,15 @@ async def me(user=Depends(get_current_user)):
 
 @router.post("/me/ensure")
 async def ensure(user=Depends(get_current_user), body: dict | None = None):
-    body = body or {}
+    req, bad = parse_body(EnsurePlayerBody, body or {})
+    if bad:
+        return bad
     row = await db.fetchrow(
         "SELECT * FROM players WHERE user_id=$1 AND player_type='human'", user["id"]
     )
     if row:
         return ok(db.record_to_dict(row))
-    name = body.get("player_name") or user["username"]
+    name = req.player_name or user["username"]
     row = await db.fetchrow(
         """
         INSERT INTO players (player_name, player_type, user_id, ai_player_id, status)
@@ -75,15 +78,23 @@ async def get_player(player_id: int, _user=Depends(get_current_user)):
 
 
 @router.patch("/{player_id}/status")
-async def patch_status(player_id: int, body: dict, _user=Depends(get_current_user)):
-    status = body.get("status")
+async def patch_status(player_id: int, body: dict, user=Depends(get_current_user)):
+    req, bad = parse_body(PatchPlayerStatusBody, body)
+    if bad:
+        return bad
+    status = req.status
     if status not in ("active", "inactive", "offline"):
         return err(400, "状态参数无效")
+    existing = await db.fetchrow("SELECT * FROM players WHERE id=$1", player_id)
+    if not existing:
+        return err(404, "玩家不存在")
+    is_admin = user.get("role") == "admin"
+    is_self = existing["player_type"] == "human" and existing["user_id"] == user["id"]
+    if not (is_admin or is_self):
+        return err(403, "无权限")
     row = await db.fetchrow(
         "UPDATE players SET status=$2, updated_at=NOW() WHERE id=$1 RETURNING *",
         player_id,
         status,
     )
-    if not row:
-        return err(404, "玩家不存在")
     return ok(db.record_to_dict(row), "更新玩家状态成功")

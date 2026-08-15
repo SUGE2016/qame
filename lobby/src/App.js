@@ -3,6 +3,8 @@ import Login from './components/Login';
 import { DialogProvider } from '@qame/shared-ui';
 import NewEnhancedLobby from './components/NewEnhancedLobby';
 import GameView from './components/GameView';
+import ReplayView from './components/ReplayView';
+import { Icon } from './icons';
 
 import { api } from '@qame/shared-utils';
 
@@ -29,7 +31,7 @@ function App() {
         
         if (data.code === 200) {
           // token有效，设置用户信息
-          const userData = data.data;
+          const userData = data.data?.user || data.data;
           
           // 立即获取用户的player信息
           try {
@@ -142,26 +144,26 @@ function App() {
     // 不清除gameState，保持游戏状态以便用户可以重新进入
   };
 
+  const handleSpectate = (matchID, gameName) => {
+    const newGameState = { matchID, gameName, spectate: true };
+    setGameState(newGameState);
+    sessionStorage.setItem('gameState', JSON.stringify(newGameState));
+    setCurrentView('game');
+    sessionStorage.setItem('currentView', 'game');
+  };
+
+  const handleReplay = (matchID, gameName) => {
+    const newGameState = { ...(gameState || {}), matchID, gameName: gameName || gameState?.gameName };
+    setGameState(newGameState);
+    sessionStorage.setItem('gameState', JSON.stringify(newGameState));
+    setCurrentView('replay');
+    sessionStorage.setItem('currentView', 'replay');
+  };
+
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          backgroundColor: 'white',
-          borderRadius: '10px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ fontSize: '18px', color: '#666', marginBottom: '20px' }}>
-            🔄 正在加载...
-          </div>
-        </div>
+      <div className="q-login">
+        <p className="q-hint">正在加载…</p>
       </div>
     );
   }
@@ -170,85 +172,62 @@ function App() {
   if (user) {
     return (
       <DialogProvider>
-        <div>
-        {/* 顶部导航栏 */}
-        <div style={{
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          padding: '15px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-            🎮 Qame Platform v0.1
+        <div className="q-app">
+        <header className="q-topbar">
+          <div className="q-brand">
+            <span className="q-brand-mark"><Icon name="grid" size={16} /></span>
+            QAME
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ marginRight: '15px' }}>
-              欢迎，{user.username}！
-            </span>
-            
-            {/* 导航按钮 */}
-            <div style={{ display: 'flex', gap: '10px', marginRight: '15px' }}>
-              <button
-                onClick={() => handleViewChange('lobby')}
-                style={{
-                  backgroundColor: currentView === 'lobby' ? 'rgba(255,255,255,0.2)' : 'transparent',
-                  border: '1px solid white',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                对战大厅
-              </button>
-              
-              {user.role === 'admin' && (
-                <button
-                  onClick={() => window.location.href = '/admin/'}
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: '1px solid white',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  管理控制台
-                </button>
-              )}
-            </div>
-            
+          <div className="q-topbar-actions">
+            {(() => {
+              const username = user.username || user.user?.username || '玩家';
+              const role = user.role || user.user?.role;
+              return (
+                <div className="q-user-chip" title={username}>
+                  <span className="q-user-avatar" aria-hidden="true">{username.slice(0, 1).toUpperCase()}</span>
+                  <span className="q-user-meta">
+                    <span className="q-user-name">{username}</span>
+                    <span className="q-user-role">{role === 'admin' ? '管理员' : '选手'}</span>
+                  </span>
+                </div>
+              );
+            })()}
             <button
-              onClick={handleLogout}
-              style={{
-                backgroundColor: 'transparent',
-                border: '1px solid white',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              type="button"
+              className={`q-btn q-btn-sm ${currentView === 'lobby' ? 'q-btn-primary' : 'q-btn-ghost'}`}
+              onClick={() => handleViewChange('lobby')}
             >
-              退出登录
+              大厅
+            </button>
+            {user.role === 'admin' && (
+              <button type="button" className="q-btn q-btn-sm q-btn-ghost" onClick={() => { window.location.href = '/admin/'; }}>
+                管理台
+              </button>
+            )}
+            <button type="button" className="q-btn q-btn-sm q-btn-ghost" onClick={handleLogout}>
+              <Icon name="logout" size={16} />
+              退出
             </button>
           </div>
-        </div>
-
-        {/* 主内容区域 */}
-        <div style={{ flex: 1, padding: '20px' }}>
-          {currentView === 'lobby' && <NewEnhancedLobby onGameStart={handleGameStart} />}
+        </header>
+        <div className="q-main">
+          {currentView === 'lobby' && (
+            <NewEnhancedLobby onGameStart={handleGameStart} onReplay={handleReplay} onSpectate={handleSpectate} />
+          )}
           {currentView === 'game' && gameState && (
             <GameView 
               matchID={gameState.matchID}
               playerID={gameState.playerID}
               playerName={gameState.playerName}
+              gameName={gameState.gameName}
+              spectate={Boolean(gameState.spectate)}
+              onReturnToLobby={handleReturnToLobby}
+              onReplay={handleReplay}
+            />
+          )}
+          {currentView === 'replay' && gameState && (
+            <ReplayView
+              matchID={gameState.matchID}
               gameName={gameState.gameName}
               onReturnToLobby={handleReturnToLobby}
             />

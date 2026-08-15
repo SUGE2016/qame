@@ -22,7 +22,7 @@ echo "== unit =="
 echo "== regression against ${QAME_URL} =="
 if ! curl -sf "${QAME_URL}/health" >/dev/null; then
   echo "ERROR: platform not healthy at ${QAME_URL}"
-  echo "Start with: docker compose up -d postgres game-tic-tac-toe game-gomoku api-server"
+  echo "Start with: docker compose up -d postgres game-tic-tac-toe game-gomoku game-battleship api-server"
   exit 1
 fi
 "$PYTHON" -m pytest tests/regression -q --tb=short

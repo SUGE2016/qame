@@ -12,8 +12,9 @@ description: >-
 
 ## 登录
 
-- 若 MCP 已配置 `QAME_USERNAME`/`QAME_PASSWORD`，通常已自动登录。
-- 否则先调用 `qame_login`。
+- 优先配置 `QAME_TOKEN`（个人访问令牌），不要把密码写进 MCP 配置。
+- 本机可挂两个 MCP：`qame` 选手、`qame-admin` 管理，各用各的 PAT。
+- 没有 token 时：`qame_login` → `qame_create_pat`，把返回的 token 交给用户写入环境变量。
 
 ## 典型对话流
 

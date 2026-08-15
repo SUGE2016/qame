@@ -51,14 +51,14 @@ Cursor（及同类）Agent 通过 MCP 参与 QAME：查赛、参赛、建房、�
       "command": "node",
       "args": ["/absolute/path/to/qame/mcp/src/index.js"],
       "env": {
-        "QAME_URL": "http://localhost:8001",
-        "QAME_USERNAME": "admin",
-        "QAME_PASSWORD": "admin123",
-        "QAME_PASSWORD_SALT": "与服务端 PASSWORD_SALT 一致"
+        "QAME_URL": "http://127.0.0.1:8001",
+        "QAME_TOKEN": "${env:QAME_TOKEN}"
       }
     }
   }
 }
 ```
+
+先 `./scripts/create-pat.sh <user> <pass>` 拿到 PAT，再 `export QAME_TOKEN=...`。正式部署只改 `QAME_URL`。
 
 安装依赖：`cd mcp && npm install`。
