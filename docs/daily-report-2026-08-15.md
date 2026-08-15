@@ -69,6 +69,8 @@ unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 | `5b829ec` | 去掉独立 AI 管理 |
 | `8ff64fc` | 回归结束后清理测试账号 |
 | `71a421f` / `e2503d7` / `688df99` | 本日报 |
+| `98f5210` | 大海战命中连射 |
+| `8a9c055` | 宣传片物料与日报收口 |
 
 ## 明日 / 可选
 - Codex 合并宣传片 clip 成双音轨成片
