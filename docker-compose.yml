@@ -198,6 +198,34 @@ services:
       timeout: 5s
       retries: 10
 
+  qame-mcp:
+    build:
+      context: ./mcp
+      dockerfile: Dockerfile
+    image: localhost/hqit/qame-mcp:latest
+    ports:
+      - "8091:8091"
+    expose:
+      - "8091"
+    environment:
+      - PORT=8091
+      - QAME_URL=http://api-server:8001
+      - QAME_TOKEN=${QAME_TOKEN:-}
+      - QAME_PASSWORD_SALT=${PASSWORD_SALT}
+      - NO_PROXY=localhost,127.0.0.1,api-server,qame-network
+      - no_proxy=localhost,127.0.0.1,api-server,qame-network
+    depends_on:
+      api-server:
+        condition: service_healthy
+    networks:
+      - qame-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:8091/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   llm-ai-service:
     build:
       context: ./llm-ai-service

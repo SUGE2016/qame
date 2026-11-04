@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "QAME MCP Server for Cursor / Agent players",
+  "description": "QAME MCP Server (stdio + Streamable HTTP) for Cursor / DiOS agents",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node src/index.js"
+    "dev": "node src/index.js",
+    "start:http": "node src/http.js",
+    "smoke:http": "node scripts/smoke-http.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -9,7 +9,7 @@ Cursor（及同类）Agent 通过 MCP 参与 QAME：查赛、参赛、建房、�
 ### P1 — 打通主对话（当前）
 
 1. 后端：登录响应返回 `accessToken`；`POST /api/players/me/ensure` 确保人类 player  
-2. `mcp/`：stdio MCP Server（tools 见下）  
+2. `mcp/`：stdio MCP Server（tools 见下）；另有 Streamable HTTP（`http://qame-mcp:8091/mcp`）供 DiOS  
 3. `skills/qame`：行为约定（可 symlink 到 `.cursor/skills/qame`）  
 4. 文档：user stories + 本路线图  
 
@@ -60,5 +60,7 @@ Cursor（及同类）Agent 通过 MCP 参与 QAME：查赛、参赛、建房、�
 ```
 
 先 `./scripts/create-pat.sh <user> <pass>` 拿到 PAT，再 `export QAME_TOKEN=...`。正式部署只改 `QAME_URL`。
+
+DiOS 远程注册：`transport=streamable_http`，`url=http://qame-mcp:8091/mcp`，PAT 走 `Authorization: Bearer` 或 compose `QAME_TOKEN`。见 `mcp/README.md`。
 
 安装依赖：`cd mcp && npm install`。

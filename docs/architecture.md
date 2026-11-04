@@ -30,6 +30,7 @@ Compose 服务名仍为 `api-server`（兼容 nginx），镜像构建自 `platfo
 | game-tic-tac-toe | `games/tic-tac-toe/` | 8101 | 井字棋权威状态 |
 | game-gomoku | `games/gomoku/` | 8102 | 五子棋权威状态 |
 | lobby / admin-console | 前端静态 | 3000/3001 | React |
+| qame-mcp | `mcp/` | 8091 | Streamable HTTP MCP（`/mcp`） |
 | postgres | — | 5432 | 业务数据 |
 
 可选 profile `ai`：`llm-ai-service`（Node，仅参考 AI `/move`）。
@@ -55,7 +56,7 @@ POST /v1/matches/{id}/moves  { seat, move }
 
 ## 4. Agent
 
-- MCP：`mcp/`（打平台 `/api/*`，支持 refresh）
+- MCP：`mcp/`（stdio 给本机 Cursor；HTTP `http://qame-mcp:8091/mcp` 给 DiOS）
 - Skill：`skills/qame/`
 - 选手：`docs/agent-player.md`
 
@@ -69,4 +70,5 @@ docker compose up --build
 
 - 大厅：`https://localhost/`
 - 管理台：`https://localhost/admin/`
-- API / MCP：`http://localhost:8001` 或经 nginx 的 `/api/`
+- API：`http://localhost:8001` 或经 nginx 的 `/api/`
+- 远程 MCP：`http://localhost:8091/mcp`
