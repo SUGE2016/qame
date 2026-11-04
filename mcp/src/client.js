@@ -1,16 +1,43 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
 
 const BASE = (process.env.QAME_URL || 'http://localhost:8001').replace(/\/$/, '');
 const SALT = process.env.QAME_PASSWORD_SALT || process.env.PASSWORD_SALT || 'your_fixed_salt_here';
 
-/** @type {{ token: string|null, refreshToken: string|null, playerId: string|null, seats: Map<string,string> }} */
-export const session = {
-  token: process.env.QAME_TOKEN || null,
-  refreshToken: process.env.QAME_REFRESH_TOKEN || null,
-  playerId: null,
-  /** matchId -> seatToken */
-  seats: new Map(),
-};
+const als = new AsyncLocalStorage();
+
+/** @typedef {{ token: string|null, refreshToken: string|null, playerId: string|null, seats: Map<string,string> }} QameSession */
+
+/** @returns {QameSession} */
+export function createSession({ token, refreshToken } = {}) {
+  return {
+    token: token !== undefined ? token : process.env.QAME_TOKEN || null,
+    refreshToken: refreshToken !== undefined ? refreshToken : process.env.QAME_REFRESH_TOKEN || null,
+    playerId: null,
+    /** matchId -> seatToken */
+    seats: new Map(),
+  };
+}
+
+export const defaultSession = createSession();
+
+/** HTTP 会话内切换 PAT / seat 缓存；stdio 无 store 时回落到 defaultSession。 */
+export function runWithSession(sess, fn) {
+  return als.run(sess, fn);
+}
+
+/** @type {QameSession} */
+export const session = new Proxy(defaultSession, {
+  get(_target, prop) {
+    const store = als.getStore() ?? defaultSession;
+    return store[prop];
+  },
+  set(_target, prop, value) {
+    const store = als.getStore() ?? defaultSession;
+    store[prop] = value;
+    return true;
+  },
+});
 
 export function hashPassword(password) {
   return crypto.createHash('sha256').update(password + SALT).digest('hex');

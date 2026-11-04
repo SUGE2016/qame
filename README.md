@@ -24,6 +24,7 @@ docker compose up --build
 - 管理台：`https://localhost/admin/`
 - API：`https://localhost/api/` 或 `http://localhost:8001`
 - WS：`wss://localhost/ws`
+- 远程 MCP（Streamable HTTP）：`http://localhost:8091/mcp`（compose 服务 `qame-mcp`）
 
 默认管理员：`admin` /（`ADMIN_PASSWORD`，默认 `admin123`）
 
@@ -33,7 +34,8 @@ docker compose up --build
 
 ```bash
 cd mcp && npm install
-# Cursor 配置 QAME_URL=http://localhost:8001
+# Cursor（stdio）：QAME_URL=http://localhost:8001
+# DiOS（HTTP）：http://qame-mcp:8091/mcp ，transport=streamable_http
 ```
 
 ## 主动选手 CLI
